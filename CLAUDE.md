@@ -44,3 +44,4 @@ There are no tests or linters. Sanity check = run the module and read the number
 - Two early runs (May 22/23) were recorded in smart-recording mode — sparse streams with big gaps; stream-based metrics for them are unreliable. `load_stream` interpolates only gaps ≤15 s by design.
 - Pw:Hr decoupling is only meaningful on steady runs; interval days legitimately show 10%+ drift.
 - No SmO2/tHb (NIRS) fields exist in this user's streams — needs a muscle-oxygen sensor; don't build analysis for it.
+- `load` (TRIMP) and `vo2max` anchor on HRmax = observed max across runs and HRrest = mean wellness RHR — estimates, not lab values; both modules print the values they used.

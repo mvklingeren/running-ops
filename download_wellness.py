@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download daily resting HR + nightly HRV into data/wellness.csv.
+"""Download daily resting HR, nightly HRV and sleep into data/wellness.csv.
 
 Covers from 7 days before the first run through today. Skips dates
 already in the csv. Safe to re-run.
@@ -12,7 +12,8 @@ from datetime import date, timedelta
 from garminconnect import Garmin
 
 PATH = "data/wellness.csv"
-FIELDS = ["date", "rhr", "hrv", "hrv_weekly", "hrv_low", "hrv_high", "status"]
+FIELDS = ["date", "rhr", "hrv", "hrv_weekly", "hrv_low", "hrv_high", "status",
+          "sleep_h", "sleep_score"]
 
 
 def main():
@@ -45,6 +46,14 @@ def main():
                            hrv_low=s.get("baseline", {}).get("balancedLow", ""),
                            hrv_high=s.get("baseline", {}).get("balancedUpper", ""),
                            status=s.get("status", ""))
+            except Exception:
+                pass
+            try:
+                sd = (g.get_sleep_data(ds) or {}).get("dailySleepDTO") or {}
+                secs = sd.get("sleepTimeSeconds")
+                row["sleep_h"] = round(secs / 3600, 2) if secs else ""
+                row["sleep_score"] = ((sd.get("sleepScores") or {})
+                                      .get("overall", {}).get("value", ""))
             except Exception:
                 pass
             have[ds] = row

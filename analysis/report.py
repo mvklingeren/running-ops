@@ -15,8 +15,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from . import (bests, cp, decoupling, dynamics, fitness, intervals, quadrant,
-               recovery, volume, wbal, zones)
+from . import (bests, cp, decoupling, dynamics, fitness, intervals, load,
+               quadrant, recovery, vo2max, volume, wbal, zones)
 from .common import load_runs, load_stream
 
 OUT = "report"
@@ -159,11 +159,51 @@ def chart_quadrant(df):
     return fig
 
 
+def chart_load(df):
+    daily, _, _ = load.daily_load()
+    atl, ctl, tsb = load.pmc(daily)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(tsb.index, tsb.values, color=["#4daf4a" if v >= 0 else "#fdae61"
+                                         for v in tsb.values], alpha=0.5,
+           label="form (TSB)")
+    ax.plot(ctl.index, ctl.values, color="#1f77b4", lw=2, label="fitness (CTL)")
+    ax.plot(atl.index, atl.values, color="#d62728", lw=1, label="fatigue (ATL)")
+    ax.scatter(daily.index, daily.values, s=8, color="gray", alpha=0.5,
+               label="daily TRIMP")
+    ax.axhline(0, color="gray", lw=0.5)
+    ax.set_title("Performance management: fitness vs fatigue vs form")
+    ax.set_ylabel("TRIMP")
+    ax.legend(ncol=2, fontsize=8)
+    fig.autofmt_xdate()
+    return fig
+
+
+def chart_vo2max(df):
+    hr_max = df["maxHR"].max()
+    evo2 = vo2max.effective_vo2max(df, hr_max)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(df["startTimeLocal"], evo2, "o-", ms=4, color="#1f77b4",
+            label="effective VO2max (ours)")
+    ax.plot(df["startTimeLocal"], evo2.rolling(5, min_periods=1).median(),
+            color="#1f77b4", lw=2, alpha=0.4, label="5-run median")
+    g = df.dropna(subset=["vO2MaxValue"])
+    ax.plot(g["startTimeLocal"], g["vO2MaxValue"], "s--", ms=4,
+            color="#d62728", label="Garmin")
+    vdot = evo2.tail(10).median()
+    preds = ", ".join(f"{n} {vo2max.fmt_time(vo2max.predict(vdot, m))}"
+                      for n, m in vo2max.RACES[:2])
+    ax.set_title(f"Effective VO2max — prognosis: {preds}")
+    ax.set_ylabel("ml/kg/min")
+    ax.legend()
+    fig.autofmt_xdate()
+    return fig
+
+
 def chart_recovery(df):
     w = recovery.load_wellness()
     km = df.set_index("startTimeLocal")["km"].resample("D").sum()
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), sharex=True,
-                                   height_ratios=[2, 1])
+    fig, (ax1, ax3, ax2) = plt.subplots(3, 1, figsize=(8, 6.5), sharex=True,
+                                        height_ratios=[2, 1, 1])
     ax1.fill_between(w.index, w["hrv_low"], w["hrv_high"],
                      color="#4daf4a", alpha=0.15, label="HRV baseline")
     ax1.plot(w.index, w["hrv"], "o-", ms=3, color="#4daf4a", label="HRV (ms)")
@@ -173,6 +213,9 @@ def chart_recovery(df):
     ax1b.set_ylabel("RHR (bpm)", color="#d62728")
     ax1b.invert_yaxis()  # up = better for both lines
     ax1.set_title("Recovery: HRV & resting HR (both lines up = good) vs load")
+    ax3.bar(w.index, w["sleep_h"], color="#6a51a3", alpha=0.7)
+    ax3.axhline(7, color="gray", ls="--", lw=1)
+    ax3.set_ylabel("sleep (h)")
     ax2.bar(km.index, km.values, color="#1f77b4")
     ax2.set_ylabel("km/day")
     fig.autofmt_xdate()
@@ -238,7 +281,10 @@ def main():
         ("Interval discovery", "intervals.png", chart_intervals, intervals),
         ("Power & HR distribution", "zones.png", chart_zones, zones),
         ("Quadrant: force vs cadence", "quadrant.png", chart_quadrant, quadrant),
-        ("Recovery: HRV & resting HR", "recovery.png", chart_recovery, recovery),
+        ("Training load (TRIMP / PMC)", "load.png", chart_load, load),
+        ("VO2max & race prognosis", "vo2max.png", chart_vo2max, vo2max),
+        ("Recovery: HRV, sleep & resting HR", "recovery.png", chart_recovery,
+         recovery),
         ("Aerobic decoupling", "decoupling.png", chart_decoupling, decoupling),
         ("Running dynamics", "dynamics.png", chart_dynamics, dynamics),
         ("Bests", "bests.png", chart_bests, bests),
