@@ -32,9 +32,10 @@ def find_intervals(power, cp):
 
 def interval_metrics(run, stream, s, e):
     seg = stream.loc[s:e]
-    dur = e - s
-    half = s + dur // 2
-    p1, p2 = seg.loc[:half, "power"].mean(), seg.loc[half:, "power"].mean()
+    dur = len(seg)  # 1 Hz samples, inclusive bounds: e - s + 1 seconds of work
+    half = dur // 2
+    p1 = seg["power"].iloc[:half].mean()
+    p2 = seg["power"].iloc[half:].mean()
     return {
         "date": run["startTimeLocal"], "start_min": s / 60, "dur": dur,
         "power": seg["power"].mean(), "hr": seg["hr"].mean(),

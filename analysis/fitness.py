@@ -31,8 +31,8 @@ def main():
     print(f"Efficiency  : {gain:+.1%}", end="")
     if gain > 0:
         beats = first["averageHR"].mean() * (1 - e1 / e2)
-        print(f" — each km now costs ~{abs(beats):.0f} fewer beats/min "
-              f"at the same pace. Fitness is improving.")
+        print(f" — running at the same pace now costs ~{abs(beats):.0f} "
+              f"fewer bpm. Fitness is improving.")
     else:
         print(" — flat/declining; could be heat, fatigue, or harder terrain.")
 

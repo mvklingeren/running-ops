@@ -25,7 +25,7 @@ def main():
     share = longest / km.replace(0, float("nan"))
     print(f"Long-run share  : biggest run is {share.mean():.0%} of its week "
           f"on average (guideline: keep under ~50%)")
-    lr = df.loc[df.groupby(df["startTimeLocal"].dt.isocalendar().week)["km"]
+    lr = df.loc[df.groupby(df["startTimeLocal"].dt.to_period("W"))["km"]
                 .idxmax()]
     prog = lr[lr["km"] >= 8].sort_values("startTimeLocal")
     if len(prog) > 1:
