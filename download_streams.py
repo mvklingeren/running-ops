@@ -32,7 +32,8 @@ def main():
             for k in KEYS:
                 v = p["metrics"][idx[k]] if k in idx else None
                 cols[k].append(v)
-        json.dump(cols, open(path, "w"))
+        with open(path, "w") as f:
+            json.dump(cols, f)
         print(f"{r['startTimeLocal'][:10]}  {r['distance']/1000:5.1f} km  "
               f"{len(d['activityDetailMetrics'])} points -> {path}")
 

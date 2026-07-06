@@ -16,7 +16,8 @@ def load_runs(path="data/runs.csv"):
 
 def load_stream(activity_id):
     """Per-second stream for one run: DataFrame(power, speed, hr), index = elapsed s."""
-    d = json.load(open(f"data/streams/{activity_id}.json"))
+    with open(f"data/streams/{activity_id}.json") as f:
+        d = json.load(f)
     ts = pd.to_datetime(d["directTimestamp"], unit="ms")
     cols = {"power": "directPower", "speed": "directSpeed",
             "hr": "directHeartRate", "cadence": "directDoubleCadence",

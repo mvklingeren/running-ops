@@ -25,7 +25,13 @@ Use `.venv/bin/python` for everything — it's Python 3.12 (managed by `uv`). Th
                                         # pdf renders report.html via headless Chrome/Brave/Edge)
 ```
 
-There are no tests or linters. Sanity check = run the module and read the numbers.
+```bash
+# Tests (stdlib unittest, no data/ or network needed, <1 s)
+.venv/bin/python -m unittest            # all
+.venv/bin/python -m unittest tests.test_cp -v   # one module
+```
+
+Tests live in `tests/`, one file per analysis module with real math, verifying against published values (Daniels VDOT tables), closed-form solutions (W'bal), or hand-computed constants (TRIMP). Keep calculations in module-level pure functions taking Series/DataFrames so they stay testable; a new calculation gets a test with a reference value. No linters.
 
 ## Garmin auth
 
