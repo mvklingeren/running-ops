@@ -1,0 +1,11 @@
+# fetched personal data & generated output
+data/
+report/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
