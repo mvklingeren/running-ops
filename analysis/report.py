@@ -2,11 +2,17 @@
 
 Pass --html to also write report/report.html (self-styled, images relative).
 Pass --pdf for report/report.pdf (rendered via a headless Chromium browser).
+Pass --zip for report/share-<date>.zip: report + all downloaded data.
+Add --privacy to anonymize the zip (drops runs.json and activity names —
+they contain GPS coordinates and account identity).
 """
+import csv
+import glob
 import io
 import os
 import subprocess
 import sys
+import zipfile
 from contextlib import redirect_stdout
 from datetime import datetime
 
@@ -338,6 +344,41 @@ def main():
              f"file://{os.path.abspath(OUT)}/report.html"],
             check=True, capture_output=True)
         print(f"Wrote {OUT}/report.pdf")
+
+    if "--zip" in sys.argv:
+        privacy = "--privacy" in sys.argv
+        zpath = f"{OUT}/share-{datetime.now():%Y-%m-%d}.zip"
+        with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+            if privacy:
+                # runs.csv minus activityName (embeds town names);
+                # runs.json excluded: GPS coords + account identity
+                with open("data/runs.csv") as f:
+                    rows = list(csv.DictReader(f))
+                cols = [c for c in rows[0] if c != "activityName"]
+                buf = io.StringIO()
+                w = csv.DictWriter(buf, cols, extrasaction="ignore")
+                w.writeheader()
+                w.writerows(rows)
+                z.writestr("data/runs.csv", buf.getvalue())
+            else:
+                z.write("data/runs.csv")
+                z.write("data/runs.json")
+            for p in sorted(glob.glob("data/streams/*.json")):
+                z.write(p)
+            if os.path.exists("data/wellness.csv"):
+                z.write("data/wellness.csv")
+            for p in sorted(glob.glob(f"{OUT}/*")):
+                if not p.endswith(".zip"):
+                    z.write(p)
+        n = len(zipfile.ZipFile(zpath).namelist())
+        print(f"Wrote {zpath} ({n} files, {os.path.getsize(zpath) >> 20} MB)")
+        if privacy:
+            print("Included: runs.csv (names stripped), streams, wellness, report")
+            print("Excluded: runs.json (GPS + account identity), auth tokens")
+        else:
+            print("Included: ALL data (incl. GPS coordinates and activity "
+                  "names in runs.json/csv) + report")
+            print("Use --privacy to strip location and identity before sharing.")
 
 
 if __name__ == "__main__":

@@ -8,10 +8,19 @@ with race predictions, and recovery tracking.
 
 ## Privacy
 
-**Your data never leaves your machine.** The scripts talk directly to
-Garmin's API with your own account; everything is written to local files
-(`data/`, `report/`) that are gitignored. No third-party services, no
-telemetry, nothing shared with anyone.
+**Your data doesn't leave your machine — unless you choose to share data.**
+The scripts talk directly to Garmin's API with your own account;
+everything is written to local files (`data/`, `report/`) that are
+gitignored. No third-party services, no telemetry, nothing shared with
+anyone.
+
+The only way data leaves is if you decide to: `--zip` builds a share
+archive, to send to someone (a coach, this project's maintainers). By
+default it contains everything that was downloaded — including GPS
+coordinates and activity names. Add `--privacy` to anonymize it: GPS
+coordinates, activity/location names and account IDs are then stripped,
+leaving only training metrics (power/HR/pace streams, wellness trends)
+and the report. Auth tokens are never included either way.
 
 ## Quick start (one-liner)
 
@@ -74,6 +83,11 @@ produces a standalone **HTML page and a PDF** (rendered locally via
 headless Chrome or Brave — one of the two must be installed). The report
 contains every analysis section with its chart and full text output,
 stamped with the generation date.
+
+To share your data (e.g. with a coach or for debugging an analysis),
+`--zip` creates `report/share-<date>.zip` with the report plus all
+downloaded data; add `--privacy` to strip location and identity first —
+see the privacy section above for exactly what that removes.
 
 ## Tests
 
