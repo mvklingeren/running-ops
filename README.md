@@ -68,8 +68,47 @@ skipped, so re-running is cheap and only picks up what's new.
 .venv/bin/python -m analysis            # all analyses, text output in the terminal
 .venv/bin/python -m analysis.volume     # or any single one (cp, wbal, intervals,
                                         # zones, quadrant, load, vo2max, recovery,
-                                        # decoupling, dynamics, fitness, bests)
+                                        # decoupling, dynamics, fitness, correlate,
+                                        # bests)
 ```
+
+## Correlations
+
+Any two columns can be paired — raw Garmin datapoints (distance, HR,
+cadence, elevation…), wellness data (HRV, resting HR, sleep) and every
+calculated metric (TRIMP, CTL/ATL/TSB, decoupling, W' depletion,
+effective VO2max…) all live in one per-run frame, so any combination is
+one command away. You get the Pearson correlation, a per-run table and a
+chart PNG; `--list` shows all available columns.
+
+```bash
+# does a well-recovered morning (high HRV) make the run more efficient?
+.venv/bin/python -m analysis.correlate hrv m_per_beat
+
+# does short sleep show up as slower pace?
+.venv/bin/python -m analysis.correlate sleep_h pace_s
+
+# is the fitness you're building (CTL) actually lifting your VO2max?
+.venv/bin/python -m analysis.correlate ctl evo2
+```
+
+A pairing worth keeping permanently becomes a chapter in the report's
+**Correlations** section: add one entry to `CHAPTERS` in
+`analysis/correlate.py` and it shows up in every future report as its
+own panel with a proper title and axis labels — no plotting code needed.
+
+```python
+CHAPTERS = [
+    ...
+    # (title, left axis [(column, label)], right axis [(column, label)])
+    ("Sleep vs next-day pace",
+     [("sleep_h", "sleep (h)")], [("pace_s", "pace (s/km)")]),
+]
+```
+
+Column names are the same ones `--list` shows; the labels are free text
+for the chart axes. Mind the usual caveat: with ~25 runs these are
+exploratory correlations, not proof of causation.
 
 ## The report
 

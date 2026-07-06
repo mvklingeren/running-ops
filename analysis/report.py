@@ -21,8 +21,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from . import (bests, cp, decoupling, dynamics, fitness, intervals, load,
-               quadrant, recovery, vo2max, volume, wbal, zones)
+from . import (bests, correlate, cp, decoupling, dynamics, fitness, intervals,
+               load, quadrant, recovery, vo2max, volume, wbal, zones)
 from .common import load_runs, load_stream
 
 OUT = "report"
@@ -268,6 +268,16 @@ def chart_dynamics(df):
     return fig
 
 
+def chart_correlate(df):
+    x = correlate.build()
+    n = len(correlate.CHAPTERS)
+    fig, axes = plt.subplots(n, 1, figsize=(8, 2.6 * n), sharex=True)
+    for ax, spec in zip([axes] if n == 1 else axes, correlate.CHAPTERS):
+        correlate.plot_chapter(ax, x, spec)
+    fig.autofmt_xdate()
+    return fig
+
+
 def capture(mod):
     buf = io.StringIO()
     with redirect_stdout(buf):
@@ -293,6 +303,7 @@ def main():
          recovery),
         ("Aerobic decoupling", "decoupling.png", chart_decoupling, decoupling),
         ("Running dynamics", "dynamics.png", chart_dynamics, dynamics),
+        ("Correlations", "correlate.png", chart_correlate, correlate),
         ("Bests", "bests.png", chart_bests, bests),
     ]
     lines = [f"# Running report — {df['startTimeLocal'].min():%Y-%m-%d} to "

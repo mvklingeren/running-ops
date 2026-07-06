@@ -21,6 +21,10 @@ Use `.venv/bin/python` for everything — it's Python 3.12 (managed by `uv`). Th
 # Analyze
 .venv/bin/python -m analysis            # all modules, text to terminal
 .venv/bin/python -m analysis.volume     # any single module the same way
+.venv/bin/python -m analysis.correlate hrv m_per_beat  # ad-hoc: correlate any two
+                                        # columns of correlate.build()'s frame
+                                        # (--list shows them); persistent chapters
+                                        # go in correlate.CHAPTERS instead
 .venv/bin/python -m analysis.report     # report/report.md + PNGs (--html and/or --pdf for those formats;
                                         # pdf renders report.html via headless Chrome/Brave;
                                         # --zip = share archive with ALL data; --zip --privacy strips
