@@ -50,9 +50,18 @@ uv pip install --python .venv/bin/python garminconnect pandas matplotlib markdow
 ## Downloading your data
 
 ```bash
-.venv/bin/python download_runs.py       # last 25 runs -> data/runs.json + runs.csv
+.venv/bin/python download_runs.py       # last 50 runs -> data/runs.json + runs.csv
 .venv/bin/python download_streams.py    # per-second streams -> data/streams/
 .venv/bin/python download_wellness.py   # daily RHR/HRV/sleep -> data/wellness.csv
+```
+
+`download_runs.py` takes the last 50 runs by default; pick a different
+amount or a date range instead:
+
+```bash
+.venv/bin/python download_runs.py -n 100                           # last 100 runs
+.venv/bin/python download_runs.py --start 2026-06-01               # everything since June 1
+.venv/bin/python download_runs.py --start 2026-06-01 --end 2026-06-30   # June only
 ```
 
 **First run: you'll be asked to log in.** Enter your Garmin email and
@@ -111,7 +120,7 @@ CHAPTERS = [
 ```
 
 Column names are the same ones `--list` shows; the labels are free text
-for the chart axes. Mind the usual caveat: with ~25 runs these are
+for the chart axes. Mind the usual caveat: with ~50 runs these are
 exploratory correlations, not proof of causation.
 
 ## The report

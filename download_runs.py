@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Download the last 25 runs from Garmin Connect into data/runs.json + data/runs.csv.
+"""Download runs from Garmin Connect into data/runs.json + data/runs.csv.
+
+Default: the last 50 runs. -n/--count changes how many;
+--start/--end (YYYY-MM-DD) downloads all runs in a date range instead.
 
 First run prompts for Garmin credentials (and MFA code if enabled);
 tokens are saved to ~/.garminconnect so later runs need no login.
 """
+import argparse
 import csv
 import json
 import os
@@ -12,7 +16,7 @@ from getpass import getpass
 from garminconnect import Garmin
 
 TOKENSTORE = os.path.expanduser("~/.garminconnect")
-N_RUNS = 25
+N_RUNS = 50
 COLS = ["activityId", "activityName", "startTimeLocal", "distance",
         "duration", "elapsedDuration", "averageSpeed", "maxSpeed",
         "averageHR", "maxHR", "calories", "elevationGain", "elevationLoss",
@@ -40,11 +44,29 @@ def login():
 
 
 def main():
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    group = p.add_mutually_exclusive_group()
+    group.add_argument("-n", "--count", type=int, default=N_RUNS, metavar="N",
+                       help=f"download the last N runs (default {N_RUNS})")
+    group.add_argument("--start", metavar="YYYY-MM-DD",
+                       help="download all runs from this date (use with --end)")
+    p.add_argument("--end", metavar="YYYY-MM-DD",
+                   help="end of date range (default: today)")
+    args = p.parse_args()
+    if args.end and not args.start:
+        p.error("--end requires --start")
+
     g = login()
-    #  fetch a batch and filter client-side; 200 is plenty to find 25 runs
-    activities = g.get_activities(0, 200)
+    if args.start:
+        activities = g.get_activities_by_date(args.start, args.end,
+                                              activitytype="running")
+        limit = None
+    else:
+        # fetch a batch and filter client-side; oversize so -n > runs still fits
+        activities = g.get_activities(0, max(200, 2 * args.count))
+        limit = args.count
     runs = [a for a in activities
-            if "running" in a.get("activityType", {}).get("typeKey", "")][:N_RUNS]
+            if "running" in a.get("activityType", {}).get("typeKey", "")][:limit]
     print(f"Found {len(runs)} runs")
 
     os.makedirs("data", exist_ok=True)

@@ -14,7 +14,7 @@ Use `.venv/bin/python` for everything — it's Python 3.12 (managed by `uv`). Th
 
 ```bash
 # Refresh data (in this order — streams and wellness read data/runs.json)
-.venv/bin/python download_runs.py       # last 25 runs -> data/runs.json + runs.csv
+.venv/bin/python download_runs.py       # last 50 runs by default (-n N or --start/--end) -> data/runs.json + runs.csv
 .venv/bin/python download_streams.py    # 1s power/HR/dynamics per run -> data/streams/<id>.json
 .venv/bin/python download_wellness.py   # daily RHR + HRV -> data/wellness.csv
 
