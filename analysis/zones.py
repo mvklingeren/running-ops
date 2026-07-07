@@ -18,6 +18,12 @@ def all_power(runs):
                       for _, r in runs.iterrows()], ignore_index=True).dropna()
 
 
+def time_in_zones(power, cp):
+    """Seconds in each ZONES bucket (1 sample = 1 s, lower bound inclusive)."""
+    return [((power >= lo * cp) & (power < hi * cp)).sum()
+            for lo, hi, _ in ZONES]
+
+
 def main():
     runs = load_runs()
     cp, _ = fit_cp(mmp_curve(runs))
@@ -26,8 +32,7 @@ def main():
 
     print(f"=== Time in power zones, {len(runs)} runs "
           f"({total / 3600:.1f} h recorded, CP {cp:.0f} W) ===\n")
-    for lo, hi, name in ZONES:
-        t = ((s["power"] >= lo * cp) & (s["power"] < hi * cp)).sum()
+    for (lo, hi, name), t in zip(ZONES, time_in_zones(s["power"], cp)):
         rng = f"{lo * cp:.0f}-{hi * cp:.0f}W" if hi < 99 else f">{lo * cp:.0f}W"
         print(f"{name:13} {rng:>10} {t / 3600:5.1f}h {t / total:5.0%}  "
               f"{bar(t, total)}")

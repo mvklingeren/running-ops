@@ -19,25 +19,28 @@ def main():
         rows.append({
             "date": r["startTimeLocal"], "km": r["km"], "pace_s": r["pace_s"],
             "gct": s["gct"].mean(), "vo": s["vo"].mean(),
-            "vratio": s["vratio"].mean(), "stream": s,
+            "vratio": s["vratio"].mean(), "stride": s["stride"].mean(),
+            "stream": s,
         })
     df = pd.DataFrame(rows)
 
     print("=== Running dynamics ===\n")
-    print(f"{'date':>10} {'km':>5} {'pace':>8} {'GCT':>6} {'VO':>6} {'vRatio':>7}")
+    print(f"{'date':>10} {'km':>5} {'pace':>8} {'GCT':>6} {'VO':>6} "
+          f"{'vRatio':>7} {'stride':>7}")
     for _, r in df.iterrows():
         print(f"{r['date']:%m-%d} {r['km']:9.1f} {fmt_pace(r['pace_s']):>8} "
-              f"{r['gct']:5.0f}ms {r['vo']:5.1f}cm {r['vratio']:6.2f}%")
+              f"{r['gct']:5.0f}ms {r['vo']:5.1f}cm {r['vratio']:6.2f}% "
+              f"{r['stride']:5.0f}cm")
 
     print(f"\nAverages: GCT {df['gct'].mean():.0f} ms, "
           f"VO {df['vo'].mean():.1f} cm, vertical ratio "
-          f"{df['vratio'].mean():.2f}%")
+          f"{df['vratio'].mean():.2f}%, stride {df['stride'].mean():.0f} cm")
     fast = df.nsmallest(5, "pace_s")
     slow = df.nlargest(5, "pace_s")
-    print(f"Fast runs : GCT {fast['gct'].mean():.0f} ms at "
-          f"{fmt_pace(fast['pace_s'].mean())}")
-    print(f"Slow runs : GCT {slow['gct'].mean():.0f} ms at "
-          f"{fmt_pace(slow['pace_s'].mean())}")
+    print(f"Fast runs : GCT {fast['gct'].mean():.0f} ms, stride "
+          f"{fast['stride'].mean():.0f} cm at {fmt_pace(fast['pace_s'].mean())}")
+    print(f"Slow runs : GCT {slow['gct'].mean():.0f} ms, stride "
+          f"{slow['stride'].mean():.0f} cm at {fmt_pace(slow['pace_s'].mean())}")
 
     print("\nForm under fatigue (first vs last quarter, runs >= 10 km):")
     for _, r in df[df["km"] >= 10].iterrows():

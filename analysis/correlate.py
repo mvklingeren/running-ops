@@ -30,6 +30,8 @@ CHAPTERS = [
      [("tsb", "form (TSB)")], [("decoupling", "Pw:Hr drift")]),
     ("Sleep vs W' depletion",
      [("sleep_h", "sleep (h)")], [("wbal_depl", "W' used")]),
+    ("Garmin aerobic training effect vs TRIMP",
+     [("aerobicTrainingEffect", "aerobic TE")], [("trimp", "TRIMP")]),
 ]
 
 LEFT_C, RIGHT_C = "#1f77b4", "#d62728"

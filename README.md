@@ -2,9 +2,9 @@
 
 Personal running analytics for Garmin. Downloads your runs, per-second
 power/HR/dynamics streams and daily wellness data (resting HR, HRV, sleep)
-from Garmin Connect, then generates 13 analyses — from weekly volume to
+from Garmin Connect, then generates 15 analyses — from weekly volume to
 Critical Power modeling, W'bal, training load (TRIMP/PMC), effective VO2max
-with race predictions, and recovery tracking.
+with race predictions, grade-adjusted pace, and recovery tracking.
 
 ## Privacy
 
@@ -68,8 +68,8 @@ skipped, so re-running is cheap and only picks up what's new.
 .venv/bin/python -m analysis            # all analyses, text output in the terminal
 .venv/bin/python -m analysis.volume     # or any single one (cp, wbal, intervals,
                                         # zones, quadrant, load, vo2max, recovery,
-                                        # decoupling, dynamics, fitness, correlate,
-                                        # bests)
+                                        # decoupling, dynamics, elevation, fitness,
+                                        # correlate, bests)
 ```
 
 ## Correlations

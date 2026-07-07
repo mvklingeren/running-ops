@@ -13,6 +13,11 @@ from garminconnect import Garmin
 
 TOKENSTORE = os.path.expanduser("~/.garminconnect")
 N_RUNS = 25
+COLS = ["activityId", "activityName", "startTimeLocal", "distance",
+        "duration", "elapsedDuration", "averageSpeed", "maxSpeed",
+        "averageHR", "maxHR", "calories", "elevationGain", "elevationLoss",
+        "avgGradeAdjustedSpeed", "averageRunningCadenceInStepsPerMinute",
+        "aerobicTrainingEffect", "anaerobicTrainingEffect", "vO2MaxValue"]
 
 
 def login():
@@ -43,13 +48,8 @@ def main():
     with open("data/runs.json", "w") as f:
         json.dump(runs, f, indent=2)
 
-    cols = ["activityId", "activityName", "startTimeLocal", "distance",
-            "duration", "elapsedDuration", "averageSpeed", "maxSpeed",
-            "averageHR", "maxHR", "calories", "elevationGain", "elevationLoss",
-            "averageRunningCadenceInStepsPerMinute", "aerobicTrainingEffect",
-            "anaerobicTrainingEffect", "vO2MaxValue"]
     with open("data/runs.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=COLS, extrasaction="ignore")
         w.writeheader()
         w.writerows(runs)
     print("Wrote data/runs.json and data/runs.csv")

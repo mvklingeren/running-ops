@@ -6,6 +6,11 @@ Rising m/beat at flat pace = aerobic fitness improving.
 from .common import bar, fmt_pace, load_runs
 
 
+def beats_saved(hr, e1, e2):
+    """bpm cheaper the same pace has become as efficiency rose e1 -> e2."""
+    return hr * (1 - e1 / e2)
+
+
 def main():
     df = load_runs().dropna(subset=["averageHR"])
     df["eff_smooth"] = df["m_per_beat"].rolling(5, min_periods=1).mean()
@@ -30,7 +35,7 @@ def main():
     gain = (e2 - e1) / e1
     print(f"Efficiency  : {gain:+.1%}", end="")
     if gain > 0:
-        beats = first["averageHR"].mean() * (1 - e1 / e2)
+        beats = beats_saved(first["averageHR"].mean(), e1, e2)
         print(f" — running at the same pace now costs ~{abs(beats):.0f} "
               f"fewer bpm. Fitness is improving.")
     else:

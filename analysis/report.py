@@ -21,8 +21,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from . import (bests, correlate, cp, decoupling, dynamics, fitness, intervals,
-               load, quadrant, recovery, vo2max, volume, wbal, zones)
+from . import (bests, correlate, cp, decoupling, dynamics, elevation, fitness,
+               intervals, load, quadrant, recovery, vo2max, volume, wbal,
+               zones)
 from .common import load_runs, load_stream
 
 OUT = "report"
@@ -268,6 +269,21 @@ def chart_dynamics(df):
     return fig
 
 
+def chart_elevation(df):
+    d = df.dropna(subset=["avgGradeAdjustedSpeed"]).copy()
+    d["gain_km"] = d["elevationGain"] / d["km"]
+    d["cost"] = elevation.hill_cost(d)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    sc = ax.scatter(d["gain_km"], d["cost"], s=d["km"] * 12,
+                    c=d["pace_s"] / 60, cmap="viridis")
+    ax.axhline(0, color="gray", lw=0.5)
+    ax.set_title("Hill cost vs hilliness (size = distance, color = pace)")
+    ax.set_xlabel("elevation gain (m/km)")
+    ax.set_ylabel("pace lost to gradient (s/km)")
+    fig.colorbar(sc, label="pace (min/km)")
+    return fig
+
+
 def chart_correlate(df):
     x = correlate.build()
     n = len(correlate.CHAPTERS)
@@ -303,6 +319,8 @@ def main():
          recovery),
         ("Aerobic decoupling", "decoupling.png", chart_decoupling, decoupling),
         ("Running dynamics", "dynamics.png", chart_dynamics, dynamics),
+        ("Elevation & grade-adjusted pace", "elevation.png", chart_elevation,
+         elevation),
         ("Correlations", "correlate.png", chart_correlate, correlate),
         ("Bests", "bests.png", chart_bests, bests),
     ]

@@ -23,13 +23,10 @@ def force_cadence(runs):
     return pd.concat(frames, ignore_index=True)
 
 
-def main():
-    df = force_cadence(load_runs())
+def quadrant_split(df):
+    """Four (name, mask) quadrants around median force and cadence."""
     f_med, c_med = df["force"].median(), df["cadence"].median()
-
-    print("=== Quadrant analysis: step force vs cadence ===\n")
-    print(f"Median force   : {f_med:.0f} N   Median cadence: {c_med:.0f} spm\n")
-    quads = [
+    return f_med, c_med, [
         ("Q1 grind (hi force, lo cadence)",
          (df["force"] >= f_med) & (df["cadence"] < c_med)),
         ("Q2 power (hi force, hi cadence)",
@@ -39,6 +36,14 @@ def main():
         ("Q4 easy  (lo force, lo cadence)",
          (df["force"] < f_med) & (df["cadence"] < c_med)),
     ]
+
+
+def main():
+    df = force_cadence(load_runs())
+    f_med, c_med, quads = quadrant_split(df)
+
+    print("=== Quadrant analysis: step force vs cadence ===\n")
+    print(f"Median force   : {f_med:.0f} N   Median cadence: {c_med:.0f} spm\n")
     for name, mask in quads:
         sub = df[mask]
         print(f"{name}: {mask.mean():5.1%} of time, "

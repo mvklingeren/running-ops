@@ -20,7 +20,10 @@ def main():
 
     print("=== Recovery: HRV & resting HR vs load ===\n")
     lo, hi = w["hrv_low"].iloc[-1], w["hrv_high"].iloc[-1]
-    print(f"HRV baseline (balanced): {lo:.0f}-{hi:.0f} ms\n")
+    hrv7 = w["hrv_weekly"].iloc[-1]
+    inband = "inside" if lo <= hrv7 <= hi else "OUTSIDE"
+    print(f"HRV baseline (balanced): {lo:.0f}-{hi:.0f} ms; "
+          f"current 7-day avg {hrv7:.0f} ms ({inband} the band)\n")
 
     print("Last 14 days:")
     print(f"{'date':>10} {'km':>5} {'HRV':>4} {'RHR':>4} {'sleep':>6} "
