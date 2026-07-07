@@ -17,7 +17,10 @@ COLS = ["activityId", "activityName", "startTimeLocal", "distance",
         "duration", "elapsedDuration", "averageSpeed", "maxSpeed",
         "averageHR", "maxHR", "calories", "elevationGain", "elevationLoss",
         "avgGradeAdjustedSpeed", "averageRunningCadenceInStepsPerMinute",
-        "aerobicTrainingEffect", "anaerobicTrainingEffect", "vO2MaxValue"]
+        "aerobicTrainingEffect", "anaerobicTrainingEffect", "vO2MaxValue",
+        "avgRespirationRate", "minTemperature", "maxTemperature",
+        "fastestSplit_1000", "fastestSplit_1609", "fastestSplit_5000",
+        "fastestSplit_10000", "fastestSplit_21098"]
 
 
 def login():
@@ -38,7 +41,7 @@ def login():
 
 def main():
     g = login()
-    # ponytail: fetch a batch and filter client-side; 200 is plenty to find 25 runs
+    #  fetch a batch and filter client-side; 200 is plenty to find 25 runs
     activities = g.get_activities(0, 200)
     runs = [a for a in activities
             if "running" in a.get("activityType", {}).get("typeKey", "")][:N_RUNS]

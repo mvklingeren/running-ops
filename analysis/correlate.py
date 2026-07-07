@@ -32,6 +32,8 @@ CHAPTERS = [
      [("sleep_h", "sleep (h)")], [("wbal_depl", "W' used")]),
     ("Garmin aerobic training effect vs TRIMP",
      [("aerobicTrainingEffect", "aerobic TE")], [("trimp", "TRIMP")]),
+    ("Heat vs efficiency",
+     [("maxTemperature", "max temp (°C)")], [("m_per_beat", "m/beat")]),
 ]
 
 LEFT_C, RIGHT_C = "#1f77b4", "#d62728"
@@ -65,7 +67,7 @@ def build():
         d = decoupling(s)
         dec.append(float("nan") if d is None else d)
         p = s["power"]
-        # ponytail: <60 s of power = no meaningful W'bal, not 0% depletion
+        #  <60 s of power = no meaningful W'bal, not 0% depletion
         if cpv is not None and p.notna().sum() > 60:
             depl.append(1 - wbal_series(p, cpv, w_prime).min() / w_prime)
         else:
@@ -76,12 +78,18 @@ def build():
     dates = runs["startTimeLocal"].dt.normalize()
     daily = runs.groupby(dates)["trimp"].sum().reindex(
         pd.date_range(dates.min(), dates.max(), freq="D"), fill_value=0)
-    return assemble(runs, w, *pmc(daily))
+    df = assemble(runs, w, *pmc(daily))
+    # a runs.csv predating a CHAPTERS column is all-NaN there, not a crash
+    for col in {c for _, left, right in CHAPTERS
+                for c, _ in left + (right or [])}:
+        if col not in df.columns:
+            df[col] = float("nan")
+    return df
 
 
 def plot_chapter(ax, df, spec):
     """One CHAPTERS entry on one axis: left cols solid blue, right dashed red."""
-    # ponytail: all cols on a side share one color; a chapter that needs more
+    #  all cols on a side share one color; a chapter that needs more
     # graduates to its own hand-written chart like the other modules
     title, left, right = spec
     for col, _ in left:

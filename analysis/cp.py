@@ -10,7 +10,7 @@ import pandas as pd
 from .common import load_runs, load_stream
 
 DURATIONS = [5, 15, 30, 60, 120, 180, 300, 480, 600, 900, 1200, 1800, 2700, 3600]
-FIT_RANGE = (120, 1200)  # ponytail: 2-20 min is the validated CP window
+FIT_RANGE = (120, 1200)  #  2-20 min is the validated CP window
 
 
 def mmp_curve(runs):

@@ -1,10 +1,10 @@
-"""fmt_pace edges, load_stream gap policy, load_runs derived columns."""
+"""fmt_pace/fmt_hms edges, load_stream gap + Stryd policy, load_runs columns."""
 import json
 import os
 import tempfile
 import unittest
 
-from analysis.common import fmt_pace, load_runs, load_stream
+from analysis.common import fmt_hms, fmt_pace, load_runs, load_stream
 
 
 class TestFmtPace(unittest.TestCase):
@@ -16,6 +16,17 @@ class TestFmtPace(unittest.TestCase):
 
     def test_rounds_up(self):
         self.assertEqual(fmt_pace(359.6), "6:00/km")
+
+
+class TestFmtHms(unittest.TestCase):
+    def test_with_hours(self):
+        self.assertEqual(fmt_hms(6055.7), "1:40:56")
+
+    def test_without_hours(self):
+        self.assertEqual(fmt_hms(196.6), "3:17")
+
+    def test_rounds_into_hour(self):
+        self.assertEqual(fmt_hms(3599.6), "1:00:00")
 
 
 class TestLoadRunsDerived(unittest.TestCase):
@@ -64,6 +75,42 @@ class TestLoadStreamGaps(unittest.TestCase):
         # 20 s gap (31..50): interpolate(limit=15) leaves the tail NaN
         self.assertTrue(s.loc[31:50, "power"].isna().any())
         self.assertEqual(s["power"].isna().sum(), 5)
+
+
+class TestStrydPowerFallback(unittest.TestCase):
+    """Stryd power arrives as a Connect IQ dev field, not directPower."""
+
+    def setUp(self):
+        self.cwd = os.getcwd()
+        self.tmp = tempfile.mkdtemp()
+        os.makedirs(f"{self.tmp}/data/streams")
+        os.chdir(self.tmp)
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+
+    def write(self, aid, extra):
+        t0 = 1_700_000_000_000
+        stream = {"directTimestamp": [t0 + s * 1000 for s in range(5)],
+                  "directSpeed": [3.0] * 5, "directHeartRate": [150.0] * 5}
+        stream.update(extra)
+        with open(f"data/streams/{aid}.json", "w") as f:
+            json.dump(stream, f)
+
+    def test_ciq_field_used_when_native_power_all_null(self):
+        self.write(1, {"directPower": [None] * 5,
+                       "connectIQDeveloperField-07": [250.0, 251, 252, 253, 254]})
+        self.assertEqual(list(load_stream(1)["power"]),
+                         [250.0, 251.0, 252.0, 253.0, 254.0])
+
+    def test_ciq_field_used_when_directpower_key_missing(self):
+        self.write(2, {"connectIQDeveloperField-07": [250.0] * 5})
+        self.assertEqual(load_stream(2)["power"].iloc[0], 250.0)
+
+    def test_native_power_wins_when_present(self):
+        self.write(3, {"directPower": [300.0] * 5,
+                       "connectIQDeveloperField-07": [250.0] * 5})
+        self.assertEqual(load_stream(3)["power"].iloc[0], 300.0)
 
 
 if __name__ == "__main__":

@@ -27,9 +27,12 @@ def main():
             continue
         d = g.get_activity_details(aid, maxchart=100000)
         idx = {m["key"]: m["metricsIndex"] for m in d["metricDescriptors"]}
-        cols = {k: [] for k in KEYS}
+        # Connect IQ dev fields carry e.g. Stryd power when native power is off
+        keys = KEYS + sorted(k for k in idx
+                             if k.startswith("connectIQDeveloperField"))
+        cols = {k: [] for k in keys}
         for p in d["activityDetailMetrics"]:
-            for k in KEYS:
+            for k in keys:
                 v = p["metrics"][idx[k]] if k in idx else None
                 cols[k].append(v)
         with open(path, "w") as f:

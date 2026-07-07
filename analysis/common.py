@@ -24,6 +24,14 @@ def load_stream(activity_id):
             "stride": "directStrideLength", "gct": "directGroundContactTime",
             "vo": "directVerticalOscillation",
             "vratio": "directVerticalRatio"}
+    if all(v is None for v in d.get("directPower", [])):
+        ciq = [k for k in sorted(d) if k.startswith("connectIQDeveloperField")
+               and any(v is not None for v in d[k])]
+        if ciq:
+            #  Stryd writes power via a Connect IQ dev field, not
+            # directPower; multiple CIQ fields would need metricDescriptors
+            # units to disambiguate
+            cols["power"] = ciq[0]
     df = pd.DataFrame({n: d[k] for n, k in cols.items() if k in d},
                       index=ts, dtype=float)
     df = df[~df.index.duplicated()].resample("1s").mean().interpolate(limit=15)
@@ -34,6 +42,12 @@ def load_stream(activity_id):
 def fmt_pace(sec_per_km):
     m, s = divmod(int(round(sec_per_km)), 60)
     return f"{m}:{s:02d}/km"
+
+
+def fmt_hms(seconds):
+    h, rem = divmod(int(round(seconds)), 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
 
 
 def bar(value, vmax, width=30, char="█"):
