@@ -6,6 +6,10 @@ from Garmin Connect, then generates 15 analyses — from weekly volume to
 Critical Power modeling, W'bal, training load (TRIMP/PMC), effective VO2max
 with race predictions, grade-adjusted pace, and recovery tracking.
 
+Running power from both native Garmin watch power and **Stryd** pods is
+supported — Stryd records via a Connect IQ field, which is picked up
+automatically when native power is absent.
+
 ## Privacy
 
 **Your data doesn't leave your machine — unless you choose to share data.**
