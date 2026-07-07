@@ -1,6 +1,7 @@
 """fmt_pace/fmt_hms edges, load_stream gap + Stryd policy, load_runs columns."""
 import json
 import os
+import sys
 import tempfile
 import unittest
 
@@ -77,8 +78,8 @@ class TestLoadStreamGaps(unittest.TestCase):
         self.assertEqual(s["power"].isna().sum(), 5)
 
 
-class TestStrydPowerFallback(unittest.TestCase):
-    """Stryd power arrives as a Connect IQ dev field, not directPower."""
+class TestStrydPower(unittest.TestCase):
+    """Stryd power (Connect IQ dev field) is preferred over directPower."""
 
     def setUp(self):
         self.cwd = os.getcwd()
@@ -107,10 +108,19 @@ class TestStrydPowerFallback(unittest.TestCase):
         self.write(2, {"connectIQDeveloperField-07": [250.0] * 5})
         self.assertEqual(load_stream(2)["power"].iloc[0], 250.0)
 
-    def test_native_power_wins_when_present(self):
+    def test_stryd_wins_over_native_power(self):
         self.write(3, {"directPower": [300.0] * 5,
                        "connectIQDeveloperField-07": [250.0] * 5})
-        self.assertEqual(load_stream(3)["power"].iloc[0], 300.0)
+        self.assertEqual(load_stream(3)["power"].iloc[0], 250.0)
+
+    def test_ignore_stryd_flag_uses_native_power(self):
+        self.write(4, {"directPower": [300.0] * 5,
+                       "connectIQDeveloperField-07": [250.0] * 5})
+        sys.argv.append("--ignore-stryd")
+        try:
+            self.assertEqual(load_stream(4)["power"].iloc[0], 300.0)
+        finally:
+            sys.argv.remove("--ignore-stryd")
 
 
 if __name__ == "__main__":

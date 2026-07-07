@@ -1,5 +1,6 @@
 """Shared loading + helpers for run analysis modules."""
 import json
+import sys
 
 import pandas as pd
 
@@ -24,13 +25,14 @@ def load_stream(activity_id):
             "stride": "directStrideLength", "gct": "directGroundContactTime",
             "vo": "directVerticalOscillation",
             "vratio": "directVerticalRatio"}
-    if all(v is None for v in d.get("directPower", [])):
+    if "--ignore-stryd" not in sys.argv:
         ciq = [k for k in sorted(d) if k.startswith("connectIQDeveloperField")
                and any(v is not None for v in d[k])]
         if ciq:
-            #  Stryd writes power via a Connect IQ dev field, not
-            # directPower; multiple CIQ fields would need metricDescriptors
-            # units to disambiguate
+            # Stryd writes power via a Connect IQ dev field; preferred over
+            # native directPower (--ignore-stryd reverts to native).
+            # multiple CIQ fields would need metricDescriptors
+            # units to disambiguate — we take the first
             cols["power"] = ciq[0]
     df = pd.DataFrame({n: d[k] for n, k in cols.items() if k in d},
                       index=ts, dtype=float)

@@ -6,8 +6,9 @@ from Garmin Connect, then generates 15 analyses — from weekly volume to
 Critical Power modeling, W'bal, training load (TRIMP/PMC), effective VO2max
 with race predictions, grade-adjusted pace, and recovery tracking.
 
-**Stryd** pods are supported — their Connect IQ power field is picked up
-automatically.
+**Stryd** pods are supported — their power data is read automatically and
+used in favor of Garmin's native power. Pass `--ignore-stryd` to any
+analysis command to use native power instead.
 
 ## Privacy
 

@@ -159,7 +159,7 @@ def explore(a, b):
 
 
 if __name__ == "__main__":
-    args = [x for x in sys.argv[1:] if x != "--list"]
+    args = [x for x in sys.argv[1:] if not x.startswith("--")]
     if "--list" in sys.argv:
         list_columns(build())
     elif len(args) == 2:
