@@ -8,7 +8,16 @@ modules, 3 downloaders, report pipeline, 55-test suite — all passing).*
 | Question | Verdict |
 |---|---|
 | Is it complete? | **~80% of a personal tool, ~50% of a distributable one.** The analytics core is done and tested; identity (athlete name), packaging, config, non-power fallbacks and cross-platform PDF are missing. |
-| Professional-grade calculations? | **Exceptional density for 2,400 lines** — it already computes things Strava doesn't (CP/W', W'bal, monotony/strain). To beat Strava/Runalyze/GoldenCheetah *in numbers* it needs ~12 more metrics (listed below), most importantly pace/HR fallbacks so the numbers exist without a power meter. |
+| Professional-grade calculations? | **Exceptional density for 2,400 lines** — it already computes things Strava doesn't (CP/W', W'bal, monotony/strain). To beat Strava/Runalyze/GoldenCheetah *in numbers* it needs ~12 more metrics (listed below), led by model-confidence reporting (CP fit quality, endurance-corrected predictions). |
+
+> **Scope decision (2026-07-08):** the tool targets runners on current
+> performance watches (Forerunner 255+/Fenix 7+/Epix/Enduro, ~2022 onward, or
+> Stryd), which all record running power. Watches without power — including
+> current lifestyle models (Venu, vívoactive, FR55/165) and 5-year-old
+> devices — are out of scope. The HR+pace fallback lane is therefore
+> deprioritized from "top item" to nice-to-have; what remains in scope is
+> failing soft on the odd power-less stream and never mixing Stryd and
+> Garmin-native watts in one CP fit (§4).
 | Biggest structural risk | Every module re-reads every stream and refits CP on every invocation; per-run tables grow linearly with run count. Fine at 50 runs, painful at 500. |
 | Report bloat at 50+ runs | Solvable with one shared compact-table helper (head/tail + "… n more"), weekly aggregation, and `<details>` sections in HTML. Design sketch below. |
 
@@ -108,22 +117,30 @@ Legend: ✅ has it · 🟡 partial · ❌ missing
 Runalyze outright and matches much of GoldenCheetah with 1% of the code. But
 "better in numbers than all three" is not yet true, for two reasons:
 
-1. **The numbers vanish without a power meter.** Strava/Runalyze/GC all
-   degrade gracefully to HR+pace. Here, 7 of 15 sections require power.
-2. **Model confidence is missing.** GC tells you how good the CP fit is;
+1. **Model confidence is missing.** GC tells you how good the CP fit is;
    Runalyze corrects race predictions for demonstrated endurance. This tool
    prints a single number and (to its credit) a caveat in prose.
+2. **Power-source fragility.** 7 of 15 sections require a power stream. Per
+   the scope decision above, the target audience always has one — but a
+   single power-less stream (treadmill, corrupt file) crashes the report
+   instead of being skipped, and a mix of Stryd and Garmin-native watts
+   (10–20% different scales) silently corrupts the shared CP fit.
 
 ## 4. What "better in numbers" requires — prioritized
 
 Each of these follows the existing pattern (pure function + reference-value
 test + module or extension of one):
 
-1. **Critical Speed from pace** (`cs.py`): the same P = CP + W′/t math on
-   speed (D′ instead of W′) — gives every runner a CP-equivalent, race-pace
-   zones, and pace-based W'bal. *Unlocks: everything for non-power users.*
-2. **hrTSS/rTSS fallback in `load.py`** so PMC works from HR or pace when
-   power is absent (TRIMP already does; make zones/intervals fall back too).
+1. **Power-source integrity**: tag each stream's power source
+   (Stryd CIQ vs native `directPower`), fit CP per source or warn loudly on
+   a mix (the scales differ 10–20%, and one mixed run in `mmp_curve`
+   skews CP for every downstream module); power modules skip a power-less
+   run with one printed line instead of crashing the report.
+2. **Critical Speed from pace** (`cs.py`): the same math as CP
+   (v = CS + D′/t) on the speed stream. Deprioritized as a *fallback* by the
+   scope decision, but still worth having as a cross-check on power-based CP
+   — CS is the original, well-validated running model, and Garmin native
+   power is itself modeled largely from pace/grade/weight.
 3. **CP fit diagnostics**: R² and standard error of CP/W′ from the linear
    fit, points-in-window count, and a staleness warning ("no maximal 12–20 min
    effort in 6 weeks — CP unreliable; go test"). Cheap, high trust value.
@@ -215,14 +232,14 @@ MIT license is already in place ✅. Suggested phases:
 - Ship an anonymized sample dataset (`--privacy` zip of ~15 runs) +
   `make demo` so anyone can render a report in 30 seconds
 
-**Phase 2 — every runner, not just Stryd owners**
-- Critical Speed + hrTSS/rTSS fallbacks (§4.1–2); modules pick
-  power → pace → HR automatically and print which they used
+**Phase 2 — robustness within the power-watch scope**
+- Power-source integrity + fail-soft on power-less streams (§4.1)
 - Full-history sync (append-based `runs.json`, resumable)
-- FIT/GPX/TCX file import as an alternative to Garmin Connect (opens the
-  tool to Coros/Polar/Suunto/Apple users; `common.py` is already the single
-  choke point to extend)
+- FIT file import as an alternative to Garmin Connect API (same watches,
+  no cloud dependency; `common.py` is already the single choke point)
 - Units option (km/mi) in config
+- *(descoped: HR+pace fallback lane for non-power watches — see scope
+  decision at top)*
 
 **Phase 3 — win on numbers** (§4 items 3–12, roughly in that order)
 
