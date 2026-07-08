@@ -14,10 +14,12 @@ modules, 3 downloaders, report pipeline, 55-test suite — all passing).*
 > performance watches (Forerunner 255+/Fenix 7+/Epix/Enduro, ~2022 onward, or
 > Stryd), which all record running power. Watches without power — including
 > current lifestyle models (Venu, vívoactive, FR55/165) and 5-year-old
-> devices — are out of scope. The HR+pace fallback lane is therefore
-> deprioritized from "top item" to nice-to-have; what remains in scope is
-> failing soft on the odd power-less stream and never mixing Stryd and
-> Garmin-native watts in one CP fit (§4).
+> devices — are out of the *baseline* scope. The HR+pace fallback lane is
+> therefore deprioritized from "top item" to an **optional Phase 2.5**
+> (costed in Appendix B: ~2–3 extra days on top of already-planned work,
+> because most of it is a parametrization of existing math). What stays in
+> the baseline regardless: failing soft on the odd power-less stream and
+> never mixing Stryd and Garmin-native watts in one CP fit (§4).
 | Biggest structural risk | Every module re-reads every stream and refits CP on every invocation; per-run tables grow linearly with run count. Fine at 50 runs, painful at 500. |
 | Report bloat at 50+ runs | Solvable with one shared compact-table helper (head/tail + "… n more"), weekly aggregation, and `<details>` sections in HTML. Design sketch below. |
 
@@ -238,8 +240,14 @@ MIT license is already in place ✅. Suggested phases:
 - FIT file import as an alternative to Garmin Connect API (same watches,
   no cloud dependency; `common.py` is already the single choke point)
 - Units option (km/mi) in config
-- *(descoped: HR+pace fallback lane for non-power watches — see scope
-  decision at top)*
+
+**Phase 2.5 (optional) — support non-power watches (Venu, vívoactive,
+FR55/165, pre-2022 devices)**
+- Full cost/benefit breakdown in **Appendix B**. Summary: the lane-detection,
+  fail-soft and section-gating work is already in Phase 2; on top of that,
+  non-power support is essentially one Critical Speed module (mostly reused
+  math), three trivial module parametrizations, and hills handling —
+  ~2–3 extra days for a much larger addressable audience.
 
 **Phase 3 — win on numbers** (§4 items 3–12, roughly in that order)
 
@@ -252,7 +260,63 @@ MIT license is already in place ✅. Suggested phases:
 
 ---
 
-## Appendix: small nitpicks found during review
+## Appendix B: what supporting non-power watches would take (Phase 2.5)
+
+*Optional extension beyond the baseline scope decision. Recorded here so the
+option stays costed and can be picked up when the audience justifies it.*
+
+**Core insight: it's a parametrization, not a rewrite.** The math is
+lane-agnostic — CP and Critical Speed are the same model (P = CP + W′/t
+becomes v = CS + D′/t), W′bal and D′bal are the same differential equation,
+and zones/intervals/decoupling just compare a series against a threshold.
+Nearly every power module can take a "lane" (column + threshold) instead of
+hardcoding `power`:
+
+| Module | What it takes | Effort |
+|---|---|---|
+| `cp.py` | Generalize `mmp_curve(runs)` to `mmp_curve(runs, col)`; reuse the fit on the `speed` stream → `cs.py` is ~40 new lines | small |
+| `wbal.py` | `wbal_series(power, cp, w_prime)` works **verbatim** as `(speed, cs, d_prime)` — D′ is meters instead of joules. Zero math changes | trivial |
+| `intervals.py` | `find_intervals(stream["speed"], cs)` — smoothing/merge logic is series-agnostic. Detect on pace, never HR (HR lags 30–60 s and smears interval edges) | trivial |
+| `decoupling.py` | Swap EF = power/HR for EF = speed/HR — that is the *original* pace:HR decoupling from the literature. One parameter | trivial |
+| `zones.py` | Zones as %CS (pace zones) or %LTHR; `ZONES` fractions stay, `time_in_zones` already takes any series + threshold | small |
+| `load`, `vo2max`, `fitness`, `volume`, `bests`, `recovery`, `elevation` | **Already power-free** (TRIMP is HR-based, VO2max is HR:pace) — nothing to do | none |
+| `quadrant.py` | Genuinely impossible without power (force = power/speed has no pace equivalent). Skip with a message, or offer a cadence-vs-stride quadrant | skip |
+| `dynamics.py` | Same *hardware* problem, not a power problem: GCT/VO need an HRM strap, RD pod or wrist-dynamics firmware, which budget watches also lack. Skip with a message | skip |
+
+**The glue work (the real cost):**
+
+1. **Lane detection in `common.py`** — per stream, determine what's
+   available (Stryd power → native power → speed → HR), expose it, and have
+   every module print which lane it used. This is the same mechanism as the
+   baseline fail-soft + Stryd/native separation (§4.1) — build once, serves
+   both.
+2. **Report gating** — a "requires" field per entry in `report.py`'s
+   `sections` list so sections skip or swap chart functions cleanly (e.g.
+   `chart_cp` plotting mean-maximal *pace* with a min/km axis on the speed
+   lane).
+3. **Tests** — D′bal reuses the closed-form W′bal test verbatim; CS gets a
+   synthetic-fit test plus a published-example check, matching the suite's
+   existing reference-value pattern.
+4. **The one genuine science problem: hills.** Power self-corrects for
+   grade; raw pace doesn't, so hilly runs poison the CS fit and pace zones.
+   Mitigations, cheapest first: fit CS only on runs with low elevation
+   gain/km (already in `runs.csv`); or add `directElevation` to the stream
+   download `KEYS` and grade-adjust the speed stream (costs existing users a
+   `rm -rf data/streams` re-fetch, per the documented invalidation flow).
+
+**Total: ~4–6 focused days, ~500–800 lines including tests** — but roughly
+half of that (lane detection, fail-soft, section gating) is already planned
+baseline work in Phase 2, so the *incremental* cost of non-power support is
+**~2–3 days**: the CS module (mostly reused math), three trivial
+parametrizations, and hills handling.
+
+**Strategic upside even if never shipped to non-power users:** CS doubles as
+an independent cross-check on power-based CP — worth having since Garmin
+native power is itself modeled largely from pace/grade/weight.
+
+---
+
+## Appendix A: small nitpicks found during review
 
 - `report.py:74` `chart_cp` halves runs by row position but labels halves by
   date — same off-by-feel as `cp.main`; harmless, but both should split on
