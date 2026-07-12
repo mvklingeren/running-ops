@@ -1,6 +1,7 @@
 """Shared loading + helpers for run analysis modules."""
 import json
 import math
+import re
 import sys
 
 import pandas as pd
@@ -55,6 +56,15 @@ def recent_prior(df, days=90, col="startTimeLocal"):
     cut = df[col].max() - pd.Timedelta(days=days)
     prior = df[(df[col] > cut - pd.Timedelta(days=days)) & (df[col] <= cut)]
     return prior, df[df[col] > cut]
+
+
+def fmt(v, spec, suffix=""):
+    """f"{v:{spec}}{suffix}", or a '-' right-padded to the same width when
+    v is NaN/None — the one way every table renders missing values."""
+    if pd.isna(v):
+        m = re.match(r"\d+", spec)
+        return f"{'-':>{(int(m.group()) if m else 1) + len(suffix)}}"
+    return f"{v:{spec}}{suffix}"
 
 
 def fmt_pace(sec_per_km):

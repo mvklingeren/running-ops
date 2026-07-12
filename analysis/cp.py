@@ -91,8 +91,8 @@ def main():
         try:
             pcp, pw = fit_cp(m)
             parts[label] = (m, pcp, pw)
-            print(f"\n{label} ({part['startTimeLocal'].min():%m-%d} to "
-                  f"{part['startTimeLocal'].max():%m-%d}): "
+            print(f"\n{label} ({part['startTimeLocal'].min():%Y-%m-%d} to "
+                  f"{part['startTimeLocal'].max():%Y-%m-%d}): "
                   f"CP {pcp:.0f} W, W' {pw / 1000:.1f} kJ")
         except Exception:
             print(f"\n{label}: not enough long efforts to fit")
@@ -110,7 +110,7 @@ def main():
         print(f"\n28-day rolling CP, stepped weekly{extra}:")
         print(f"{'window end':>10} {'runs':>5} {'CP':>6} {'W′':>9}")
         for end, c, wp, n in show:
-            print(f"{end:%m-%d} {n:9d} {c:5.0f}W {wp / 1000:6.1f} kJ")
+            print(f"{end:%Y-%m-%d} {n:5d} {c:5.0f}W {wp / 1000:6.1f} kJ")
         print("a jump means a long hard effort entered/left the window — "
               "the fit is only as good as its best 2-20 min efforts")
     return mmp, cp, w, parts

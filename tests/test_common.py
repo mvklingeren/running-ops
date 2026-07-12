@@ -8,8 +8,20 @@ import unittest
 
 import pandas as pd
 
-from analysis.common import (fmt_hms, fmt_pace, load_runs, load_stream,
+from analysis.common import (fmt, fmt_hms, fmt_pace, load_runs, load_stream,
                              recent_prior)
+
+
+class TestFmt(unittest.TestCase):
+    def test_value(self):
+        self.assertEqual(fmt(62.4, "4.0f"), "  62")
+
+    def test_suffix(self):
+        self.assertEqual(fmt(7.25, "5.1f", "h"), "  7.2h")
+
+    def test_nan_pads_to_same_width(self):
+        self.assertEqual(fmt(float("nan"), "4.0f"), "   -")
+        self.assertEqual(fmt(None, "5.1f", "h"), "     -")
 
 
 class TestFmtPace(unittest.TestCase):

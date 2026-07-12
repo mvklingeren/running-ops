@@ -5,7 +5,7 @@ rises = not absorbing the load.
 """
 import pandas as pd
 
-from .common import bar, load_runs
+from .common import bar, fmt, load_runs
 
 
 def load_wellness():
@@ -36,11 +36,10 @@ def main():
             flag = " ⚠ below baseline"
         if pd.notna(r.get("sleep_h")) and r["sleep_h"] < 6:
             flag += " ⚠ short sleep"
-        sleep = f"{r['sleep_h']:5.1f}h" if pd.notna(r.get("sleep_h")) else "     -"
-        score = f"{r['sleep_score']:5.0f}" if pd.notna(r.get("sleep_score")) \
-            else "    -"
-        print(f"{d:%m-%d} {k:9.1f} {r['hrv']:4.0f} {r['rhr']:4.0f} {sleep} "
-              f"{score}  {str(r['status']).lower()}{flag}")
+        status = str(r["status"]).lower() if pd.notna(r["status"]) else "-"
+        print(f"{d:%Y-%m-%d} {k:5.1f} {fmt(r['hrv'], '4.0f')} "
+              f"{fmt(r['rhr'], '4.0f')} {fmt(r.get('sleep_h'), '5.1f', 'h')} "
+              f"{fmt(r.get('sleep_score'), '5.0f')}  {status}{flag}")
 
     weekly_km = km.resample("W").sum()
     weekly_hrv = w["hrv"].resample("W").mean()
@@ -51,9 +50,9 @@ def main():
     print(f"\n{'week ending':>12} {'km':>6} {'HRV':>5} {'RHR':>5} {'sleep':>6}  load")
     for wk in weekly_km.index[-26:]:
         print(f"{wk:%Y-%m-%d} {weekly_km.get(wk, 0):6.1f} "
-              f"{weekly_hrv.get(wk, float('nan')):5.0f} "
-              f"{weekly_rhr.get(wk, float('nan')):5.1f} "
-              f"{weekly_sleep.get(wk, float('nan')):5.1f}h  "
+              f"{fmt(weekly_hrv.get(wk), '5.0f')} "
+              f"{fmt(weekly_rhr.get(wk), '5.1f')} "
+              f"{fmt(weekly_sleep.get(wk), '5.1f', 'h')}  "
               f"{bar(weekly_km.get(wk, 0), weekly_km.max(), 20)}")
 
     # verdict: compare this week's recovery markers to the rest

@@ -40,7 +40,7 @@ def main():
         if i < len(runs) - 20:
             continue
         t = wb.idxmin()
-        print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
+        print(f"{r['startTimeLocal']:%Y-%m-%d} {r['km']:5.1f} "
               f"{fmt_pace(r['pace_s']):>8} {wb.min() / 1000:8.1f}kJ "
               f"{depleted:8.0%}  {t // 60}:{t % 60:02d}")
 

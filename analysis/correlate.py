@@ -33,7 +33,7 @@ CHAPTERS = [
     ("Garmin aerobic training effect vs TRIMP",
      [("aerobicTrainingEffect", "aerobic TE")], [("trimp", "TRIMP")]),
     ("Heat vs efficiency",
-     [("maxTemperature", "max temp (°C)")], [("m_per_beat", "m/beat")]),
+     [("temp_c", "temp (°C)")], [("m_per_beat", "m/beat")]),
 ]
 
 LEFT_C, RIGHT_C = "#1f77b4", "#d62728"
@@ -118,14 +118,18 @@ def print_chapter(df, title, left, right):
         else:
             line += " — not enough overlapping data"
     print(line)
+    empty = [lbl for c, lbl in cols if not df[c].notna().any()]
+    if empty:
+        print(f"(no data for {', '.join(empty)} — table skipped)")
+        return
     if len(df) > 20:
         print(f"(last 20 of {len(df)} runs; r uses all)")
-    print(f"{'date':>5} " + "".join(f"{lbl:>14}" for _, lbl in cols))
+    print(f"{'date':>10} " + "".join(f"{lbl:>14}" for _, lbl in cols))
     for _, r in df.tail(20).iterrows():
         cells = "".join(
             f"{r[c]:>14.3g}" if pd.notna(r[c]) else f"{'-':>14}"
             for c, _ in cols)
-        print(f"{r['date']:%m-%d} {cells}")
+        print(f"{r['date']:%Y-%m-%d} {cells}")
 
 
 def main():

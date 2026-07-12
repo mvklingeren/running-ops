@@ -25,7 +25,7 @@ def main():
     print(f"{'date':>10} {'km':>5} {'gain':>5} {'gain/km':>8} {'pace':>8} "
           f"{'GAP':>8} {'hill cost':>10}")
     for _, r in df.tail(20).iterrows():
-        print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
+        print(f"{r['startTimeLocal']:%Y-%m-%d} {r['km']:5.1f} "
               f"{r['elevationGain']:4.0f}m {r['gain_km']:6.1f}m/km "
               f"{fmt_pace(r['pace_s']):>8} "
               f"{fmt_pace(r['pace_s'] - r['cost']):>8} {r['cost']:+7.1f} s/km")
@@ -33,7 +33,7 @@ def main():
     print(f"\nAverage: {df['gain_km'].mean():.1f} m gain/km, hill cost "
           f"{df['cost'].mean():+.1f} s/km")
     h = df.loc[df["gain_km"].idxmax()]
-    print(f"Hilliest run: {h['startTimeLocal']:%m-%d} "
+    print(f"Hilliest run: {h['startTimeLocal']:%Y-%m-%d} "
           f"({h['gain_km']:.1f} m/km, {h['elevationGain']:.0f} m total) "
           f"cost {h['cost']:+.1f} s/km")
     r = df["gain_km"].corr(df["cost"])

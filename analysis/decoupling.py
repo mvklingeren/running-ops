@@ -6,7 +6,7 @@ First 5 min excluded (HR lag), runs under 20 min skipped.
 """
 import pandas as pd
 
-from .common import fmt_pace, load_runs, load_stream
+from .common import fmt, fmt_pace, load_runs, load_stream
 
 WARMUP, MIN_DUR = 300, 1200
 HOT_DEW = 16  # °C dew point above which drift is partly heat, not fitness
@@ -38,11 +38,10 @@ def main():
                    else "moderate" if d < 0.08 else "high")
         mark = " ★" if r["km"] >= 10 else ""
         dew = r.get("dew_c")
-        wx = (f"{r['temp_c']:4.0f}° {dew:4.0f}°" if pd.notna(dew)
-              else " " * 11)
+        wx = f"{fmt(r.get('temp_c'), '4.0f', '°')} {fmt(dew, '4.0f', '°')}"
         if pd.notna(dew) and dew >= HOT_DEW and d >= 0.05:
             mark += " (hot)"
-        print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
+        print(f"{r['startTimeLocal']:%Y-%m-%d} {r['km']:5.1f} "
               f"{fmt_pace(r['pace_s']):>8} {d:6.1%} {wx}  {verdict}{mark}")
 
     print("\n★ = long run, the ones that matter most; "

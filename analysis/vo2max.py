@@ -59,7 +59,7 @@ def main():
     print(f"{'date':>10} {'km':>5} {'pace':>8} {'HR':>4} {'eff':>5} {'garmin':>7}")
     for _, r in shown.iterrows():
         garmin = f"{r['vO2MaxValue']:.0f}" if pd.notna(r["vO2MaxValue"]) else "-"
-        print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
+        print(f"{r['startTimeLocal']:%Y-%m-%d} {r['km']:5.1f} "
               f"{fmt_pace(r['pace_s']):>8} {r['averageHR']:4.0f} "
               f"{r['evo2']:5.1f} {garmin:>7}")
 

@@ -18,7 +18,7 @@ def main():
     prev = None
     for week, k in km.items():
         if week >= start:
-            delta = "" if prev in (None, 0) else f"{(k - prev) / prev:+.0%}"
+            delta = "-" if prev in (None, 0) else f"{(k - prev) / prev:+.0%}"
             warn = " ⚠ ramp" if prev and k > prev * 1.5 and k > 20 else ""
             print(f"{week:%Y-%m-%d} {k:6.1f} {n_runs[week]:4d} {delta:>8}  "
                   f"{bar(k, km.max())}{warn}")

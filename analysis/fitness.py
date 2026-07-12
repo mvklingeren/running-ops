@@ -25,7 +25,7 @@ def main():
     lo, hi = df["eff_smooth"].min(), df["eff_smooth"].max()
     for _, r in shown.iterrows():
         rel = r["eff_smooth"] - lo
-        print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
+        print(f"{r['startTimeLocal']:%Y-%m-%d} {r['km']:5.1f} "
               f"{fmt_pace(r['pace_s']):>8} {r['averageHR']:4.0f} "
               f"{r['m_per_beat']:7.3f}  {bar(rel, hi - lo, 25, '▒')}")
 

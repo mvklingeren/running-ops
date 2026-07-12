@@ -73,7 +73,7 @@ def main():
     for _, i in top.iterrows():
         style = ("even" if 0.97 <= i['pacing'] <= 1.03
                  else "fade" if i['pacing'] < 0.97 else "neg-split")
-        print(f"{i['date']:%m-%d} {i['start_min']:9.1f}m {i['dur']:4.0f}s "
+        print(f"{i['date']:%Y-%m-%d} {i['start_min']:5.1f}m {i['dur']:4.0f}s "
               f"{i['power']:5.0f}W {i['power'] / cp:5.0%} {i['hr']:4.0f} "
               f"{fmt_pace(i['pace_s']):>8} {i['pacing']:6.2f} {i['work_kj']:6.1f}"
               f"  {style}")

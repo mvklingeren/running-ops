@@ -30,7 +30,7 @@ def main():
     print(f"{'date':>10} {'km':>5} {'pace':>8} {'GCT':>6} {'VO':>6} "
           f"{'vRatio':>7} {'stride':>7}")
     for _, r in df.tail(20).iterrows():
-        print(f"{r['date']:%m-%d} {r['km']:9.1f} {fmt_pace(r['pace_s']):>8} "
+        print(f"{r['date']:%Y-%m-%d} {r['km']:5.1f} {fmt_pace(r['pace_s']):>8} "
               f"{r['gct']:5.0f}ms {r['vo']:5.1f}cm {r['vratio']:6.2f}% "
               f"{r['stride']:5.0f}cm")
 
@@ -50,7 +50,7 @@ def main():
         q = len(s) // 4
         g1, g4 = s["gct"].iloc[:q].mean(), s["gct"].iloc[-q:].mean()
         v1, v4 = s["vratio"].iloc[:q].mean(), s["vratio"].iloc[-q:].mean()
-        print(f"  {r['date']:%m-%d} ({r['km']:.1f} km): GCT {g1:.0f}->{g4:.0f} ms "
+        print(f"  {r['date']:%Y-%m-%d} ({r['km']:.1f} km): GCT {g1:.0f}->{g4:.0f} ms "
               f"({(g4 - g1) / g1:+.1%}), vRatio {v1:.2f}->{v4:.2f}%")
 
 
