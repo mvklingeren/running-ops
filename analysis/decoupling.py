@@ -10,6 +10,7 @@ from .common import fmt, fmt_pace, load_runs, load_stream
 
 WARMUP, MIN_DUR = 300, 1200
 HOT_DEW = 16  # °C dew point above which drift is partly heat, not fitness
+MAX_ZERO_POWER = 0.15  # skip runs where the pod sat idle much of a half
 
 
 def decoupling(stream):
@@ -17,8 +18,11 @@ def decoupling(stream):
     if len(s) < MIN_DUR - WARMUP:
         return None
     half = len(s) // 2
-    ef1 = s["power"].iloc[:half].mean() / s["hr"].iloc[:half].mean()
-    ef2 = s["power"].iloc[half:].mean() / s["hr"].iloc[half:].mean()
+    p1, p2 = s["power"].iloc[:half], s["power"].iloc[half:]
+    if max((p1 == 0).mean(), (p2 == 0).mean()) > MAX_ZERO_POWER:
+        return None  # zero-heavy half drags EF toward 0, drift blows up
+    ef1 = p1.mean() / s["hr"].iloc[:half].mean()
+    ef2 = p2.mean() / s["hr"].iloc[half:].mean()
     return (ef1 - ef2) / ef1
 
 

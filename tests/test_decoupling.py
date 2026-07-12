@@ -27,6 +27,13 @@ class TestDecoupling(unittest.TestCase):
         s = stream([300.0] * 600, [150.0] * 600)
         self.assertIsNone(decoupling(s))
 
+    def test_zero_power_half_skipped(self):
+        # pod idle for most of the first half -> EF ratio meaningless
+        n = 2000
+        half = WARMUP + (n - WARMUP) // 2
+        s = stream([0.0] * half + [300.0] * (n - half), [150.0] * n)
+        self.assertIsNone(decoupling(s))
+
 
 if __name__ == "__main__":
     unittest.main()
