@@ -3,6 +3,8 @@
 
 Default: the last 50 runs. -n/--count changes how many;
 --start/--end (YYYY-MM-DD) downloads all runs in a date range instead.
+Afterwards runs download_streams.py and download_weather.py so the
+per-run caches always match runs.json.
 
 First run prompts for Garmin credentials (and MFA code if enabled);
 tokens are saved to ~/.garminconnect so later runs need no login.
@@ -11,6 +13,8 @@ import argparse
 import csv
 import json
 import os
+import subprocess
+import sys
 from getpass import getpass
 
 from garminconnect import Garmin
@@ -78,6 +82,13 @@ def main():
         w.writeheader()
         w.writerows(runs)
     print("Wrote data/runs.json and data/runs.csv")
+
+    # streams/weather are per-run caches keyed off runs.json — keep them in
+    # sync automatically (incremental, so a no-op when nothing changed).
+    # wellness is day-based and can backfill years; run it manually.
+    for script in ("download_streams.py", "download_weather.py"):
+        print(f"\n--- {script} ---")
+        subprocess.run([sys.executable, script], check=True)
 
 
 if __name__ == "__main__":

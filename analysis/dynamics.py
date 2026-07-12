@@ -25,9 +25,11 @@ def main():
     df = pd.DataFrame(rows)
 
     print("=== Running dynamics ===\n")
+    if len(df) > 20:
+        print(f"(last 20 of {len(df)} runs; averages below use all)")
     print(f"{'date':>10} {'km':>5} {'pace':>8} {'GCT':>6} {'VO':>6} "
           f"{'vRatio':>7} {'stride':>7}")
-    for _, r in df.iterrows():
+    for _, r in df.tail(20).iterrows():
         print(f"{r['date']:%m-%d} {r['km']:9.1f} {fmt_pace(r['pace_s']):>8} "
               f"{r['gct']:5.0f}ms {r['vo']:5.1f}cm {r['vratio']:6.2f}% "
               f"{r['stride']:5.0f}cm")
@@ -42,8 +44,8 @@ def main():
     print(f"Slow runs : GCT {slow['gct'].mean():.0f} ms, stride "
           f"{slow['stride'].mean():.0f} cm at {fmt_pace(slow['pace_s'].mean())}")
 
-    print("\nForm under fatigue (first vs last quarter, runs >= 10 km):")
-    for _, r in df[df["km"] >= 10].iterrows():
+    print("\nForm under fatigue (first vs last quarter, last 10 runs >= 10 km):")
+    for _, r in df[df["km"] >= 10].tail(10).iterrows():
         s = r["stream"].dropna(subset=["gct"])
         q = len(s) // 4
         g1, g4 = s["gct"].iloc[:q].mean(), s["gct"].iloc[-q:].mean()

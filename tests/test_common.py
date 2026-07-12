@@ -1,11 +1,15 @@
-"""fmt_pace/fmt_hms edges, load_stream gap + Stryd policy, load_runs columns."""
+"""fmt_pace/fmt_hms edges, load_stream gap + Stryd policy, load_runs columns,
+recent_prior windowing."""
 import json
 import os
 import sys
 import tempfile
 import unittest
 
-from analysis.common import fmt_hms, fmt_pace, load_runs, load_stream
+import pandas as pd
+
+from analysis.common import (fmt_hms, fmt_pace, load_runs, load_stream,
+                             recent_prior)
 
 
 class TestFmtPace(unittest.TestCase):
@@ -121,6 +125,19 @@ class TestStrydPower(unittest.TestCase):
             self.assertEqual(load_stream(4)["power"].iloc[0], 300.0)
         finally:
             sys.argv.remove("--ignore-stryd")
+
+
+class TestRecentPrior(unittest.TestCase):
+    def test_windows_split_on_days_not_index(self):
+        # runs on days 0, 50, 100, 150, 250 before the last one
+        end = pd.Timestamp("2026-07-01")
+        dates = [end - pd.Timedelta(days=d) for d in (0, 50, 100, 150, 250)]
+        df = pd.DataFrame({"startTimeLocal": dates, "v": range(5)})
+        prior, recent = recent_prior(df, days=90)
+        self.assertEqual(len(recent), 2)  # day 0 and 50
+        self.assertEqual(len(prior), 2)  # day 100 and 150; 250 falls outside
+        self.assertTrue((recent["startTimeLocal"]
+                         > end - pd.Timedelta(days=90)).all())
 
 
 if __name__ == "__main__":

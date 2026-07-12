@@ -83,17 +83,30 @@ class TestPrintChapter(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             print_chapter(df, "a vs b", [("a", "a")], [("b", "b")])
         text = out.getvalue()
-        self.assertIn("r = +1.00 (n=3)", text)  # NaN row excluded from r
+        # NaN row excluded from r; n=3 < the 2/sqrt(n) bar -> flagged
+        self.assertIn("r = +1.00 (n=3, not significant)", text)
         self.assertIn("-", text.splitlines()[-1])  # but still printed as '-'
 
     def test_negative_correlation(self):
         text = chapter_output(chapter_df([1.0, 2.0, 3.0], [3.0, 2.0, 1.0]))
-        self.assertIn("r = -1.00 (n=3)", text)
+        self.assertIn("r = -1.00 (n=3, not significant)", text)
 
     def test_reference_r_value(self):
         # hand-computed Pearson: r = 9/sqrt(84) = 0.982
         text = chapter_output(chapter_df([1.0, 2.0, 3.0], [1.0, 2.0, 4.0]))
-        self.assertIn("r = +0.98 (n=3)", text)
+        self.assertIn("r = +0.98 (n=3, not significant)", text)
+
+    def test_large_n_strong_r_not_flagged(self):
+        # n=25, near-perfect linear: |r| > 2/sqrt(25) = 0.4 -> no flag
+        xs = [float(i) for i in range(25)]
+        ys = [2 * x + (0.1 if i % 2 else -0.1) for i, x in enumerate(xs)]
+        df = pd.DataFrame({"date": pd.date_range("2026-06-01", periods=25),
+                           "a": xs, "b": ys})
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            print_chapter(df, "t", [("a", "a")], [("b", "b")])
+        self.assertIn("(n=25)", out.getvalue())
+        self.assertNotIn("not significant", out.getvalue())
 
     def test_too_few_overlapping_points(self):
         text = chapter_output(chapter_df([1.0, 2.0], [1.0, 2.0]))

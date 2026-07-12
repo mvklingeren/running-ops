@@ -4,9 +4,12 @@ EF = power / HR. Decoupling = (EF first half - EF second half) / EF first.
 Under 5% on a 40min+ steady run = solid aerobic base.
 First 5 min excluded (HR lag), runs under 20 min skipped.
 """
+import pandas as pd
+
 from .common import fmt_pace, load_runs, load_stream
 
 WARMUP, MIN_DUR = 300, 1200
+HOT_DEW = 16  # °C dew point above which drift is partly heat, not fitness
 
 
 def decoupling(stream):
@@ -22,20 +25,28 @@ def decoupling(stream):
 def main():
     runs = load_runs()
     print("=== Aerobic decoupling (Pw:Hr), runs over 20 min ===\n")
-    print(f"{'date':>10} {'km':>5} {'pace':>8} {'drift':>7}  verdict")
     vals = []
     for _, r in runs.iterrows():
         d = decoupling(load_stream(r["activityId"]))
-        if d is None:
-            continue
-        vals.append((r, d))
+        if d is not None:
+            vals.append((r, d))
+    if len(vals) > 20:
+        print(f"(last 20 of {len(vals)} eligible runs; stats below use all)")
+    print(f"{'date':>10} {'km':>5} {'pace':>8} {'drift':>7} {'temp':>5} {'dew':>5}  verdict")
+    for r, d in vals[-20:]:
         verdict = ("excellent" if d < 0.02 else "good" if d < 0.05
                    else "moderate" if d < 0.08 else "high")
         mark = " ★" if r["km"] >= 10 else ""
+        dew = r.get("dew_c")
+        wx = (f"{r['temp_c']:4.0f}° {dew:4.0f}°" if pd.notna(dew)
+              else " " * 11)
+        if pd.notna(dew) and dew >= HOT_DEW and d >= 0.05:
+            mark += " (hot)"
         print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
-              f"{fmt_pace(r['pace_s']):>8} {d:6.1%}  {verdict}{mark}")
+              f"{fmt_pace(r['pace_s']):>8} {d:6.1%} {wx}  {verdict}{mark}")
 
-    print("\n★ = long run, the ones that matter most")
+    print("\n★ = long run, the ones that matter most; "
+          f"(hot) = dew point ≥ {HOT_DEW}°C, drift is partly heat")
     longs = [(r, d) for r, d in vals if r["km"] >= 10]
     if longs:
         avg = sum(d for _, d in longs) / len(longs)

@@ -63,11 +63,14 @@ def main():
         print(f"No intervals found above CP {cp:.0f} W")
         return
     df = df.sort_values("work_kj", ascending=False).reset_index(drop=True)
+    top = df.head(20)
     print(f"=== {len(df)} intervals discovered (efforts above CP {cp:.0f} W), "
-          f"ranked by W' spent ===\n")
+          f"ranked by W' spent"
+          + (f"; top {len(top)} shown" if len(df) > len(top) else "")
+          + " ===\n")
     print(f"{'date':>10} {'at':>6} {'dur':>5} {'power':>6} {'%CP':>5} "
           f"{'HR':>4} {'pace':>8} {'pacing':>7} {'W`kJ':>6}")
-    for _, i in df.iterrows():
+    for _, i in top.iterrows():
         style = ("even" if 0.97 <= i['pacing'] <= 1.03
                  else "fade" if i['pacing'] < 0.97 else "neg-split")
         print(f"{i['date']:%m-%d} {i['start_min']:9.1f}m {i['dur']:4.0f}s "
@@ -78,9 +81,9 @@ def main():
     by_run = df.groupby(df["date"].dt.date)
     multi = {d: g for d, g in by_run if len(g) > 1}
     if multi:
-        print("\nFatigue across repeated efforts (same run):")
-        for d, g in multi.items():
-            g = g.sort_values("start_min")
+        print("\nFatigue across repeated efforts (same run, last 10 days):")
+        for d in sorted(multi)[-10:]:
+            g = multi[d].sort_values("start_min")
             drop = g["power"].iloc[-1] / g["power"].iloc[0] - 1
             print(f"  {d}: {len(g)} efforts, last vs first power {drop:+.1%}")
     even = (df["pacing"] >= 0.97).mean()

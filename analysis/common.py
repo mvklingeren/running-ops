@@ -1,5 +1,6 @@
 """Shared loading + helpers for run analysis modules."""
 import json
+import math
 import sys
 
 import pandas as pd
@@ -12,6 +13,10 @@ def load_runs(path="data/runs.csv"):
     df["pace_s"] = df["duration"] / df["km"]  # seconds per km
     # meters covered per heartbeat — higher = same speed at less effort
     df["m_per_beat"] = df["distance"] / (df["averageHR"] * df["duration"] / 60)
+    try:  # per-run weather (download_weather.py); optional
+        df = df.merge(pd.read_csv("data/weather.csv"), on="activityId", how="left")
+    except FileNotFoundError:
+        pass
     return df
 
 
@@ -41,7 +46,20 @@ def load_stream(activity_id):
     return df
 
 
+def recent_prior(df, days=90, col="startTimeLocal"):
+    """(prior, recent): rows from the last `days` days vs the `days` before.
+
+    Time-windowed replacement for index-based half splits — with years of
+    history, "first half vs second half" compares eras, not training blocks.
+    """
+    cut = df[col].max() - pd.Timedelta(days=days)
+    prior = df[(df[col] > cut - pd.Timedelta(days=days)) & (df[col] <= cut)]
+    return prior, df[df[col] > cut]
+
+
 def fmt_pace(sec_per_km):
+    if not math.isfinite(sec_per_km):  # NaN or inf (zero-distance run)
+        return "-"
     m, s = divmod(int(round(sec_per_km)), 60)
     return f"{m}:{s:02d}/km"
 

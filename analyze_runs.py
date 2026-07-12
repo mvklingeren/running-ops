@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Analyze downloaded runs (data/runs.csv): totals, pace/HR trends, weekly volume, bests."""
+import math
+
 import pandas as pd
 
 pd.options.display.float_format = "{:.2f}".format
 
 
 def fmt_pace(sec_per_km):
-    if pd.isna(sec_per_km):
+    if not math.isfinite(sec_per_km):  # NaN or inf (zero-distance run)
         return "-"
     m, s = divmod(int(round(sec_per_km)), 60)
     return f"{m}:{s:02d}/km"

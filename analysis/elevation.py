@@ -20,9 +20,11 @@ def main():
 
     print(f"=== Elevation: hill cost via grade-adjusted pace, "
           f"{len(df)} runs ===\n")
+    if len(df) > 20:
+        print(f"(last 20 of {len(df)} runs; averages below use all)")
     print(f"{'date':>10} {'km':>5} {'gain':>5} {'gain/km':>8} {'pace':>8} "
           f"{'GAP':>8} {'hill cost':>10}")
-    for _, r in df.iterrows():
+    for _, r in df.tail(20).iterrows():
         print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
               f"{r['elevationGain']:4.0f}m {r['gain_km']:6.1f}m/km "
               f"{fmt_pace(r['pace_s']):>8} "

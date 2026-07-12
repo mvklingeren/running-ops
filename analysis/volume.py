@@ -11,13 +11,17 @@ def main():
 
     print(f"=== Weekly volume ({df['km'].sum():.0f} km total, "
           f"{len(df)} runs) ===\n")
+    if len(km) > 26:
+        print(f"(last 26 of {len(km)} weeks; averages below use all)")
     print(f"{'week ending':>12} {'km':>6} {'runs':>4} {'Δ prev':>8}  chart")
+    start = km.index[-26] if len(km) > 26 else km.index[0]
     prev = None
     for week, k in km.items():
-        delta = "" if prev in (None, 0) else f"{(k - prev) / prev:+.0%}"
-        warn = " ⚠ ramp" if prev and k > prev * 1.5 and k > 20 else ""
-        print(f"{week:%Y-%m-%d} {k:6.1f} {n_runs[week]:4d} {delta:>8}  "
-              f"{bar(k, km.max())}{warn}")
+        if week >= start:
+            delta = "" if prev in (None, 0) else f"{(k - prev) / prev:+.0%}"
+            warn = " ⚠ ramp" if prev and k > prev * 1.5 and k > 20 else ""
+            print(f"{week:%Y-%m-%d} {k:6.1f} {n_runs[week]:4d} {delta:>8}  "
+                  f"{bar(k, km.max())}{warn}")
         prev = k
 
     print(f"\nAvg week        : {km.mean():.1f} km")
@@ -30,7 +34,8 @@ def main():
     prog = lr[lr["km"] >= 8].sort_values("startTimeLocal")
     if len(prog) > 1:
         print("Long-run build  : " +
-              " → ".join(f"{k:.1f}" for k in prog["km"]) + " km")
+              " → ".join(f"{k:.1f}" for k in prog["km"].tail(12)) + " km"
+              + (f" (last 12 of {len(prog)})" if len(prog) > 12 else ""))
 
 
 if __name__ == "__main__":

@@ -27,14 +27,18 @@ def main():
     mmp = mmp_curve(runs)
     cp, w_prime = fit_cp(mmp)
     print(f"=== W'bal per run (CP {cp:.0f} W, W' {w_prime / 1000:.1f} kJ) ===\n")
+    if len(runs) > 20:
+        print(f"(last 20 of {len(runs)} runs; stats below use all)")
     print(f"{'date':>10} {'km':>5} {'pace':>8} {'min W`bal':>10} {'depleted':>9}  "
           f"deepest at")
     rows = []
-    for _, r in runs.iterrows():
+    for i, (_, r) in enumerate(runs.iterrows()):
         p = load_stream(r["activityId"])["power"]
         wb = wbal_series(p, cp, w_prime)
         depleted = 1 - wb.min() / w_prime
         rows.append((r, wb, depleted))
+        if i < len(runs) - 20:
+            continue
         t = wb.idxmin()
         print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
               f"{fmt_pace(r['pace_s']):>8} {wb.min() / 1000:8.1f}kJ "

@@ -8,7 +8,7 @@ import math
 
 import pandas as pd
 
-from .common import fmt_pace, load_runs
+from .common import fmt_pace, load_runs, recent_prior
 
 RACES = [("5k", 5000), ("10k", 10000), ("half", 21097.5), ("marathon", 42195)]
 
@@ -53,8 +53,11 @@ def main():
     runs = runs.assign(evo2=effective_vo2max(runs, hr_max))
 
     print("=== Effective VO2max (ours vs Garmin) ===\n")
+    shown = runs.tail(20)
+    if len(shown) < len(runs):
+        print(f"(last {len(shown)} of {len(runs)} runs)")
     print(f"{'date':>10} {'km':>5} {'pace':>8} {'HR':>4} {'eff':>5} {'garmin':>7}")
-    for _, r in runs.iterrows():
+    for _, r in shown.iterrows():
         garmin = f"{r['vO2MaxValue']:.0f}" if pd.notna(r["vO2MaxValue"]) else "-"
         print(f"{r['startTimeLocal']:%m-%d} {r['km']:9.1f} "
               f"{fmt_pace(r['pace_s']):>8} {r['averageHR']:4.0f} "
@@ -64,16 +67,24 @@ def main():
     vdot = recent["evo2"].median()
     garmin_now = runs["vO2MaxValue"].dropna().iloc[-1] \
         if runs["vO2MaxValue"].notna().any() else None
-    first = runs.head(10)["evo2"].median()
-    print(f"\nEffective VO2max: {vdot:.1f} (median of last 10 runs; "
-          f"first 10: {first:.1f}, {vdot - first:+.1f})")
+    print(f"\nEffective VO2max: {vdot:.1f} (median of last 10 runs)")
+    prior90, last90 = recent_prior(runs)
+    if len(prior90):
+        v_now, v_prev = last90["evo2"].median(), prior90["evo2"].median()
+        print(f"90-day trend    : {v_now:.1f} (last 90 d) vs {v_prev:.1f} "
+              f"(prior 90 d, {v_now - v_prev:+.1f})")
     if garmin_now:
         print(f"Garmin says     : {garmin_now:.0f}")
 
-    print("\nRace prognosis (from effective VO2max):")
+    lo_v, hi_v = recent["evo2"].quantile([0.25, 0.75])
+    print("\nRace prognosis (from effective VO2max; range = 25th-75th "
+          "percentile of the last 10 runs):")
     for name, meters in RACES:
         t = predict(vdot, meters)
-        print(f"  {name:9} {fmt_time(t):>8}  ({fmt_pace(t * 60 / (meters / 1000))})")
+        fast, slow = predict(hi_v, meters), predict(lo_v, meters)
+        print(f"  {name:9} {fmt_time(t):>8}  "
+              f"({fmt_pace(t * 60 / (meters / 1000))}; "
+              f"{fmt_time(fast)}-{fmt_time(slow)})")
     print("\n(marathon/half assume the endurance is there — with current "
           "long runs treat those as upper bounds)")
 

@@ -111,12 +111,17 @@ def print_chapter(df, title, left, right):
         a, b = left[0][0], right[0][0]
         sub = df[[a, b]].dropna()
         if len(sub) > 2:
-            line += f" — r = {sub[a].corr(sub[b]):+.2f} (n={len(sub)})"
+            r_ = sub[a].corr(sub[b])
+            # rough 95% cutoff for Pearson r: |r| > 2/sqrt(n)
+            sig = "" if abs(r_) > 2 / len(sub) ** 0.5 else ", not significant"
+            line += f" — r = {r_:+.2f} (n={len(sub)}{sig})"
         else:
             line += " — not enough overlapping data"
     print(line)
+    if len(df) > 20:
+        print(f"(last 20 of {len(df)} runs; r uses all)")
     print(f"{'date':>5} " + "".join(f"{lbl:>14}" for _, lbl in cols))
-    for _, r in df.iterrows():
+    for _, r in df.tail(20).iterrows():
         cells = "".join(
             f"{r[c]:>14.3g}" if pd.notna(r[c]) else f"{'-':>14}"
             for c, _ in cols)

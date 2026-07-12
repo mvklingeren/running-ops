@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Download daily resting HR, nightly HRV and sleep into data/wellness.csv.
 
-Covers from 7 days before the first run through today. Skips dates
-already in the csv. Safe to re-run.
+Covers from 7 days before the first run through today, or from
+--start (YYYY-MM-DD). Skips dates already in the csv. Safe to re-run.
 """
+import argparse
 import csv
 import json
 import os
@@ -17,12 +18,20 @@ FIELDS = ["date", "rhr", "hrv", "hrv_weekly", "hrv_low", "hrv_high", "status",
 
 
 def main():
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--start", metavar="YYYY-MM-DD",
+                   help="first date to fetch (default: 7 days before first run)")
+    args = p.parse_args()
+
     g = Garmin()
     g.login(os.path.expanduser("~/.garminconnect"))
 
-    runs = json.load(open("data/runs.json"))
-    start = date.fromisoformat(min(r["startTimeLocal"][:10] for r in runs)) \
-        - timedelta(days=7)
+    if args.start:
+        start = date.fromisoformat(args.start)
+    else:
+        runs = json.load(open("data/runs.json"))
+        start = date.fromisoformat(min(r["startTimeLocal"][:10] for r in runs)) \
+            - timedelta(days=7)
 
     have = {}
     if os.path.exists(PATH):

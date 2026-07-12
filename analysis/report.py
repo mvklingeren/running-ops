@@ -21,10 +21,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from . import (bests, correlate, cp, decoupling, dynamics, elevation, fitness,
-               intervals, load, quadrant, recovery, vo2max, volume, wbal,
-               zones)
-from .common import load_runs, load_stream
+from . import (bests, correlate, cp, decoupling, durability, dynamics,
+               elevation, fitness, intervals, load, quadrant, recovery,
+               vo2max, volume, wbal, zones)
+from .common import load_runs, load_stream, recent_prior
 
 OUT = "report"
 
@@ -70,23 +70,49 @@ def chart_bests(df):
 
 
 def chart_cp(df):
-    fig, ax = plt.subplots(figsize=(8, 4))
-    half = df["startTimeLocal"].iloc[len(df) // 2]
-    for label, part, color in [
-            ("first half", df[df["startTimeLocal"] < half], "#1f77b4"),
-            ("second half", df[df["startTimeLocal"] >= half], "#d62728")]:
-        m = cp.mmp_curve(part)
-        ax.plot(m.index / 60, m["power"], "o-", color=color, label=label)
-        try:
-            pcp, _ = cp.fit_cp(m)
-            ax.axhline(pcp, color=color, ls="--", lw=1)
-            ax.text(60, pcp + 3, f"CP {pcp:.0f}W", color=color, ha="right")
-        except Exception:
-            pass
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 4), width_ratios=[3, 2])
+    mmp = cp.mmp_curve(df)
+    cpv, wp = cp.fit_cp(mmp)
+    ax.axvspan(2, 20, color="0.93", label="2-20 min fit window")
+    ax.plot(mmp.index / 60, mmp["power"], "o", color="#1f77b4",
+            label="best efforts")
+    ts = [60 * 60 ** (i / 25) for i in range(26)]  # 1 min .. 60 min
+    ax.plot([t / 60 for t in ts], [cpv + wp / t for t in ts], "k--", lw=1,
+            label=f"fit: {cpv:.0f}W + W′/t")
+    ax.axhline(cpv, color="#d62728", ls=":", lw=1)
     ax.set_xscale("log")
     ax.set_xticks([0.25, 1, 5, 20, 60], ["15s", "1m", "5m", "20m", "60m"])
-    ax.set_title("Mean-Maximal Power curve (dashed = fitted CP)")
+    ax.set_title("Power-duration curve (flat past 20 min = no all-out long effort)")
     ax.set_ylabel("W")
+    ax.legend(fontsize=8)
+
+    trend = cp.rolling_cp(df)
+    if trend:
+        ax2.plot([e for e, *_ in trend], [c for _, c, *_ in trend],
+                 "o-", color="#1f77b4")
+        ax2.set_title("28-day rolling CP")
+        ax2.set_ylabel("W")
+        fig.autofmt_xdate()
+    fig.tight_layout()
+    return fig
+
+
+def chart_durability(df):
+    curves = durability.collect(df)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    for _, c in curves:
+        ax.plot((c.index + 0.5) * durability.BIN_KJ, c * 100, color="0.8", lw=1)
+    pooled = pd.concat([c.rename(i) for i, (_, c) in enumerate(curves)], axis=1)
+    med = pooled.median(axis=1).sort_index()
+    ax.plot((med.index + 0.5) * durability.BIN_KJ, med * 100, "o-",
+            color="#1f77b4", label="median")
+    slope, ic = durability.fade(curves)
+    xmax = (med.index.max() + 1) * durability.BIN_KJ
+    ax.plot([0, xmax], [ic * 100, (ic + slope * xmax) * 100], "--",
+            color="#d62728", label=f"fit: {slope * 1000:+.1%} / 1000 kJ")
+    ax.set_title("Durability: efficiency vs work done (each run vs its fresh EF)")
+    ax.set_xlabel("kJ of work done")
+    ax.set_ylabel("EF vs fresh (%)")
     ax.legend()
     return fig
 
@@ -301,23 +327,73 @@ def capture(mod):
     return buf.getvalue()
 
 
+def summary(df):
+    """'At a glance' markdown bullets, from the same functions the sections use."""
+    mmp = cp.mmp_curve(df)
+    cpv, wp = cp.fit_cp(mmp)
+    m = mmp[(mmp.index >= cp.FIT_RANGE[0]) & (mmp.index <= cp.FIT_RANGE[1])]
+    age = (df["startTimeLocal"].max() - m["date"].max()).days
+    daily, _, _ = load.daily_load()
+    atl, ctl, tsb = load.pmc(daily)
+    t = tsb.iloc[-1]
+    evo = vo2max.effective_vo2max(df, df["maxHR"].max())
+    prior, recent = recent_prior(df)
+    w = recovery.load_wellness()
+    lo, hi = w["hrv_low"].iloc[-1], w["hrv_high"].iloc[-1]
+    hrv7 = w["hrv_weekly"].iloc[-1]
+
+    flags = []
+    wk = df.set_index("startTimeLocal").resample("W")["km"].sum()
+    if len(wk) > 1 and wk.iloc[-2] and wk.iloc[-1] > wk.iloc[-2] * 1.5 \
+            and wk.iloc[-1] > 20:
+        flags.append("volume ramp >50% this week")
+    g = daily.tail(7)
+    if g.sum() > 0 and g.std() > 0 and g.mean() / g.std() > 2:
+        flags.append("monotony >2 this week")
+    if age > cp.TEST_STALE_DAYS:
+        flags.append(f"CP test due (newest 2-20 min max effort {age} d old)")
+    if not lo <= hrv7 <= hi:
+        flags.append("HRV outside baseline band")
+
+    trend = (f" (prior 90 d: {evo[prior.index].median():.1f})"
+             if len(prior) else "")
+    return [
+        "## At a glance\n",
+        f"- **Form**: CTL {ctl.iloc[-1]:.0f} · ATL {atl.iloc[-1]:.0f} · "
+        f"TSB {t:+.0f} — {load.form_verdict(t)}",
+        f"- **Critical Power**: {cpv:.0f} W, W′ {wp / 1000:.1f} kJ "
+        f"(fit R² {cp.fit_r2(mmp):.2f}, newest max effort {age} d ago)",
+        f"- **Effective VO2max**: {evo[recent.index].median():.1f} "
+        f"last 90 d{trend}",
+        f"- **Recovery**: 7-day HRV {hrv7:.0f} ms "
+        f"({'inside' if lo <= hrv7 <= hi else 'OUTSIDE'} baseline "
+        f"{lo:.0f}-{hi:.0f} ms), RHR {w['rhr'].tail(7).mean():.1f} bpm",
+        f"- **Flags**: {'; '.join(flags) if flags else 'none'}",
+        "",
+    ]
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     df = load_runs()
 
+    # narrative order: status -> load & recovery -> physiology -> execution
+    # -> mechanics -> environment -> records
     sections = [
         ("Weekly volume", "volume.png", chart_volume, volume),
+        ("Training load (TRIMP / PMC)", "load.png", chart_load, load),
+        ("Recovery: HRV, sleep & resting HR", "recovery.png", chart_recovery,
+         recovery),
         ("Fitness: pace vs HR", "fitness.png", chart_fitness, fitness),
         ("Critical Power model", "cp.png", chart_cp, cp),
         ("W'bal: anaerobic reserve", "wbal.png", chart_wbal, wbal),
+        ("VO2max & race prognosis", "vo2max.png", chart_vo2max, vo2max),
+        ("Durability: fade with accumulated work", "durability.png",
+         chart_durability, durability),
+        ("Aerobic decoupling", "decoupling.png", chart_decoupling, decoupling),
         ("Interval discovery", "intervals.png", chart_intervals, intervals),
         ("Power & HR distribution", "zones.png", chart_zones, zones),
         ("Quadrant: force vs cadence", "quadrant.png", chart_quadrant, quadrant),
-        ("Training load (TRIMP / PMC)", "load.png", chart_load, load),
-        ("VO2max & race prognosis", "vo2max.png", chart_vo2max, vo2max),
-        ("Recovery: HRV, sleep & resting HR", "recovery.png", chart_recovery,
-         recovery),
-        ("Aerobic decoupling", "decoupling.png", chart_decoupling, decoupling),
         ("Running dynamics", "dynamics.png", chart_dynamics, dynamics),
         ("Elevation & grade-adjusted pace", "elevation.png", chart_elevation,
          elevation),
@@ -329,6 +405,7 @@ def main():
              f"\nGenerated {datetime.now():%Y-%m-%d %H:%M}\n",
              f"\n{len(df)} runs · {df['km'].sum():.0f} km · "
              f"{df['duration'].sum() / 3600:.1f} h\n"]
+    lines += summary(df)
     for title, png, chart_fn, mod in sections:
         fig = chart_fn(df)
         fig.savefig(f"{OUT}/{png}", dpi=120, bbox_inches="tight")
@@ -341,6 +418,13 @@ def main():
     with open(path, "w") as f:
         f.write(md)
     print(f"Wrote {path} + {len(sections)} PNGs")
+
+    # derived per-run metrics for coaches/other tools; numeric columns +
+    # date only, so it stays safe inside the --privacy zip (no names/GPS)
+    x = correlate.build()
+    out = pd.concat([x["date"], x.select_dtypes("number")], axis=1)
+    out.to_csv(f"{OUT}/metrics.csv", index=False)
+    print(f"Wrote {OUT}/metrics.csv ({len(out.columns)} columns)")
 
     if "--html" in sys.argv or "--pdf" in sys.argv:
         import markdown
@@ -394,15 +478,16 @@ def main():
                 z.write("data/runs.json")
             for p in sorted(glob.glob("data/streams/*.json")):
                 z.write(p)
-            if os.path.exists("data/wellness.csv"):
-                z.write("data/wellness.csv")
+            for extra in ("data/wellness.csv", "data/weather.csv"):
+                if os.path.exists(extra):
+                    z.write(extra)  # weather.csv holds no GPS/identity
             for p in sorted(glob.glob(f"{OUT}/*")):
                 if not p.endswith(".zip"):
                     z.write(p)
         n = len(zipfile.ZipFile(zpath).namelist())
         print(f"Wrote {zpath} ({n} files, {os.path.getsize(zpath) >> 20} MB)")
         if privacy:
-            print("Included: runs.csv (names stripped), streams, wellness, report")
+            print("Included: runs.csv (names stripped), streams, wellness, weather, report")
             print("Excluded: runs.json (GPS + account identity), auth tokens")
         else:
             print("Included: ALL data (incl. GPS coordinates and activity "

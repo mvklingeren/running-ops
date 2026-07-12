@@ -53,6 +53,7 @@ uv pip install --python .venv/bin/python garminconnect pandas matplotlib markdow
 .venv/bin/python download_runs.py       # last 50 runs -> data/runs.json + runs.csv
 .venv/bin/python download_streams.py    # per-second streams -> data/streams/
 .venv/bin/python download_wellness.py   # daily RHR/HRV/sleep -> data/wellness.csv
+.venv/bin/python download_weather.py    # per-run temp/dew point -> data/weather.csv
 ```
 
 `download_runs.py` takes the last 50 runs by default; pick a different

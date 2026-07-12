@@ -46,8 +46,10 @@ def main():
     weekly_hrv = w["hrv"].resample("W").mean()
     weekly_rhr = w["rhr"].resample("W").mean()
     weekly_sleep = w["sleep_h"].resample("W").mean()
+    if len(weekly_km) > 26:
+        print(f"\n(last 26 of {len(weekly_km)} weeks)")
     print(f"\n{'week ending':>12} {'km':>6} {'HRV':>5} {'RHR':>5} {'sleep':>6}  load")
-    for wk in weekly_km.index:
+    for wk in weekly_km.index[-26:]:
         print(f"{wk:%Y-%m-%d} {weekly_km.get(wk, 0):6.1f} "
               f"{weekly_hrv.get(wk, float('nan')):5.0f} "
               f"{weekly_rhr.get(wk, float('nan')):5.1f} "

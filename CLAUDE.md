@@ -13,10 +13,15 @@ Use `.venv/bin/python` for everything — it's Python 3.12 (managed by `uv`). Th
 ## Commands
 
 ```bash
-# Refresh data (in this order — streams and wellness read data/runs.json)
-.venv/bin/python download_runs.py       # last 50 runs by default (-n N or --start/--end) -> data/runs.json + runs.csv
+# Refresh data (streams/wellness/weather read data/runs.json)
+.venv/bin/python download_runs.py       # last 50 runs by default (-n N or --start/--end) -> data/runs.json + runs.csv;
+                                        # then auto-runs download_streams.py + download_weather.py
 .venv/bin/python download_streams.py    # 1s power/HR/dynamics per run -> data/streams/<id>.json
 .venv/bin/python download_wellness.py   # daily RHR + HRV -> data/wellness.csv
+                                        # (--start YYYY-MM-DD to cap the backfill; default
+                                        # is 7 days before the first run — 3 API calls/day)
+.venv/bin/python download_weather.py    # per-run temp/dew point/wind -> data/weather.csv
+                                        # (load_runs() merges it in when present)
 
 # Analyze
 .venv/bin/python -m analysis            # all modules, text to terminal
@@ -25,7 +30,10 @@ Use `.venv/bin/python` for everything — it's Python 3.12 (managed by `uv`). Th
                                         # columns of correlate.build()'s frame
                                         # (--list shows them); persistent chapters
                                         # go in correlate.CHAPTERS instead
-.venv/bin/python -m analysis.report     # report/report.md + PNGs (--html and/or --pdf for those formats;
+.venv/bin/python -m analysis.load --race 2026-09-20  # adds a race-day TSB projection
+.venv/bin/python -m analysis.report     # report/report.md + PNGs + metrics.csv (derived per-run
+                                        # metrics, numeric-only so it is privacy-zip safe);
+                                        # --html and/or --pdf for those formats;
                                         # pdf renders report.html via headless Chrome/Brave;
                                         # --zip = share archive with ALL data; --zip --privacy strips
                                         # runs.json/GPS/names — the privacy variant must keep excluding those)
